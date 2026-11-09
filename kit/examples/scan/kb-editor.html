@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VulnEye｜知識庫條目</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  .kb-head { font:var(--weight-semibold) var(--text-subheading); margin-bottom:var(--space-m); }
+  .review-note { display:block; margin-top:var(--space-xxs); font:var(--weight-regular) var(--text-caption2); color:var(--text-disable); }
+  /* 語言與版本切換表：取代原本分開的 .lang-tabs（語言）+ .ver-row（版本）雙軌 UI。
+     Aimi 覺得語言 x 版本兩層 tab 疊在一起太複雜，語言、版本本來就是二維表格關係
+     （不同語言的版本數不一定同步），改成一張小表格直接呈現、點格子切換。 */
+  .ver-cell {
+    display:inline-flex; align-items:center; gap:var(--space-xxs); flex-wrap:wrap;
+    max-width:220px;
+    padding:var(--space-xxs) var(--space-s); border-radius:var(--radius-btn);
+    border:1px solid var(--border-default); font:var(--weight-semibold) var(--text-caption2);
+    color:var(--text-color); cursor:pointer;
+  }
+  /* 版本簡稱標籤太多、太長時：改文字＋tag 呈現（不是一整串純文字接「、」），
+     格子本身用 max-width 限制寬度、超過就換行變高，不要把整張表格撐寬（2026-09-18）。 */
+  .ver-cell .ver-cell-label { white-space:nowrap; }
+  .ver-cell .ver-cell-nick { padding:0 var(--space-xxs); }
+  .ver-cell:hover { border-color:var(--btn-hover); color:var(--btn-hover); }
+  /* .viewing＝目前載入在下面編輯區的是哪一格；.is-default＝這個語言目前預設用哪個版本
+     （產報告時用）。兩者是獨立狀態，可能同一格也可能不同格。 */
+  .ver-cell.viewing { border-color:var(--btn-hover); background:var(--bg-actived); color:var(--btn-hover); }
+  .ver-cell.add { border-style:dashed; color:var(--text-disable); }
+  .ver-cell.add:hover { border-color:var(--btn-hover); color:var(--btn-hover); }
+  .ver-cell .ver-tag-default { display:none; }
+  .ver-cell.is-default .ver-tag-default { display:inline-flex; }
+  .ver-cell .icon-star, .ver-cell .icon-trash { font-size:11px; color:var(--text-disable); }
+  .ver-cell .icon-star:hover { color:var(--btn-default); }
+  .ver-cell .icon-trash:hover { color:var(--danger-500); }
+  .ver-cell.is-default .icon-star { display:none; }
+  /* 2026-10-02：Aimi 指出這幾格不該兩欄並排，改單欄上下堆疊，跟表單其他地方一致；
+     .full 原本是用來讓單一欄位跨滿兩欄寬，改單欄後沒意義了，拿掉 */
+  .prose-grid { display:grid; grid-template-columns:1fr; gap:var(--space-m); margin-bottom:var(--space-m); }
+  /* 2026-10-03：跟 kit 的 .field > label／.form-ll .ff > label 統一成 14px Semibold，
+     原本 16px 是舊規格 */
+  .prose-grid .field-title { font:var(--weight-semibold) var(--text-caption); color:var(--text-color); margin-bottom:var(--space-xxs); }
+  /* 校對欄位表：可編輯的儲存格（Slot），kit table 規範允許塞控制項 */
+  .table td .input, .table td .selector { min-width:0; height:32px; }
+</style>
+<!--
+  超規範判斷（給 Aimi 覆核）：
+  1. examples/scan/ 自帶薄殼。
+  2. 主管把這個編輯器做成大 modal；依 layout.md §4（編輯一個主體＝整頁 C-2）改成整頁。
+     頁面拆兩張白卡：基本資料（唯讀）＋ 弱點內容（可編輯、footer 儲存只作用在這張）。
+  3. 「內容版本」三段正文用 2 欄 grid（說明 / 修補 並排、影響全寬），
+     比 left-label 逐段堆疊好填，屬 layout.md [預設] 範圍的 Column split 延伸。
+  4.（已被第 8 條取代）原本語系切換用膠囊 tab、版本用可刪膠囊，各自分開一排。
+  5. 「校對時要填的欄位」＝ inline 新增表格（對齊 RAVEN 22343-113134）：首列是可編輯
+     儲存格（kit table 規範的 Slot），下方是已加入的列。
+  6. 「分類 / 註記」tab 尚待設計稿，先放佔位。
+  7. 標題字級對齊 Figma 22093-196556：--text-heading(30) 太大，改 --text-subheading(24)。
+  8.（2026-09-15 更新，取代第 4 條）Aimi 覺得語言（.lang-tabs）跟版本（.ver-pill）
+     分兩排、各自一層 tab 太複雜——語言 x 版本本來就是二維關係（不同語言的版本數
+     不會同步，例如英文可能只有 V1，繁中已經到 V3），疊兩層 tab 反而讓人搞不清楚
+     現在看的是哪個組合。改成一張小表格：欄＝語言（＋新增語言）、列＝版本序號，
+     格子點了直接切到那個語言＋版本；語言還沒有那個版本時顯示「新增版本」，
+     還沒到那個版本序號則顯示「—」。這是全新排版，kit 沒有現成元件對應，這裡是
+     純用 .table + 手刻 .ver-cell 做的，標記給 Aimi 覆核；點擊目前只做示範用的
+     active 切換，沒有真的換下面內容，「新增版本」「新增語言」也還沒接流程。
+  9.（2026-09-17 更新）語言／版本表補上「設為預設」「刪除」：每格右側兩顆小 icon，
+     星號設為預設（同語言只能有一個，跟目前檢視是獨立狀態，各自用 .is-default／
+     .viewing 兩個 class）、垃圾桶刪除（demo 用 confirm() 代替正式刪除確認 modal；
+     刪除目前的預設版本前會先擋下來，請先把預設移到別的版本）。原本的 active 改名
+     viewing，語意更準確。
+  10.（2026-09-17 更新）版本表下面新增「基本資料」def-list（目前版本／最後修訂／
+      最後編輯者），點格子切換 viewing 時同步更新這三個值，再往下才是弱點說明等
+      正文欄位——順序上先看「這是誰、什麼時候改的」再看內容。
+  11.（2026-09-17 更新）新增「版本簡稱」欄位（弱點說明前面），填了會顯示在版本表
+      對應格子的版本號後面（例：V3 主管推薦版），示範資料補了三個情境（繁中 V2/V3、
+      日文 V2）。
+  12.（2026-09-17 更新）拿掉四處大標旁邊的說明灰字（不隨版本／語言與版本／校對時
+      要填的欄位／可用變數），Aimi 覺得介面熟悉之後這些說明是多餘的。
+  13.（2026-09-17 更新）「校對時要填的欄位」表格：inline 新增列從第一列移到最後一列，
+      已加入的欄位排前面、新增欄位排最後，符合「先看已有的、後面才是新增」的閱讀順序。
+  14.（2026-09-18 更新，第二次修正）「版本簡稱」從單一文字改成多選標籤——Aimi 明確
+      要求，一個版本可能同時有多個簡稱（如「主管推薦版」＋「已核可」）。改用 kit 現成
+      的 .tag-field 元件（跟 examples/edit.html「通知對象」同款：值以可刪 tag 排在
+      框內，外觀＝Selector），不是自創元件。data-nickname 存成逗號分隔字串。
+      版本表格子裡的簡稱顯示第一版做成純文字用「、」接起來，Aimi 測試貼了很多標籤後
+      發現這樣一長串純文字會把整欄撐爆、跟表格按鈕（.ver-cell 本身可點擊，形似按鈕）
+      混在一起分不清楚——改成版本號（純文字）＋每個簡稱各自一個 tag（.ver-cell-nick，
+      重用 .tag tag-gray）；.ver-cell 補 max-width:220px + flex-wrap:wrap，標籤太多
+      時格子自己往下換行變高，不會撐寬整張表格。
+  15.（2026-09-18 更新）頁面最上面「不隨版本」的基本資料 def-list 補上「CVSS」
+      欄位——Aimi 指出這頁的詳細資訊應該要涵蓋 kb-list.html 列表頁有的欄位，
+      對照發現列表頁的「掃描工具／原始識別碼／CVSS／風險等級／審閱狀態」六欄裡，
+      這頁少了 CVSS，插在「原始識別碼」跟「評等」（對應列表頁「風險等級」）中間，
+      順序跟列表頁欄位排列一致。示範資料照列表頁同一筆（Cross site scripting）
+      的值填「—」。
+  16.（2026-09-21 更新）.def-list.cols-2 中間分隔線：kit 已收進（b5a060f，kit.js 量測第二欄
+     dt 位置畫單一長線），本頁自己的 CSS 跟頁尾 script 拿掉，避免跟 kit 畫的疊成兩條。
+  17.（2026-10-02 更新）「版本簡稱」「弱點說明」「建議修補方式」「弱點影響」原本用
+     `.prose-grid`（2 欄並排，`.full` 讓版本簡稱/弱點影響跨滿兩欄）排版，Aimi 指出
+     不該有兩欄並排，統一改上下堆疊。`.prose-grid` 改成單欄 grid，`.full` 跟著拿掉
+     （改單欄後沒有跨欄的需求了，HTML 上也拿掉這個 class）。
+  18.（2026-10-06 更新，kit 同步）kit 把 .btn-secondary 的 hover／actived 改對齊 Figma 新版
+     （commit 40b0646）：hover＝框與字轉 --btn-hover（原本 --btn-default，較深）、actived＝
+     hover 再加底 --bg-actived，跟 .view-toggle 選中樣式同一套。.ver-cell（語言／版本矩陣的
+     格子）本來就是照 secondary 按鈕的 hover／選中做的頁面局部元件，跟著改：hover 與
+     「新增」格 hover 的框／字改 --btn-hover，.viewing（目前載入的格子）字色從 --text-link
+     改 --btn-hover，底仍是 --bg-actived。格內星號 icon hover 沒動（只是 icon 變色）。
+  19.（2026-10-29 更新，kit 同步）返回按鈕比照 kit 新規範：Sheet 最左下角、`btn btn-text` ＋
+     `fa-arrow-left`、文案「返回清單」（原本 secondary「回列表」）。標題與基本資料摘要列的結構
+     （新規範是標題下不放摘要列）需要 Aimi 決定，這次沒動。
+  20.（2026-10-30 更新，Aimi 決定）依 kit 新規範「標題下不放摘要列」：標題維持 24px（Aimi
+     拍板），下面的基本資料（掃描工具、原始識別碼、CVSS、評等、審閱狀態、最後修訂）搬進新增的
+     第一個頁籤「詳細資料」，原本上下兩張 Sheet（標題＋摘要／頁籤）合併成一張，標題直接接頁籤。
+     預設停在「詳細資料」。
+  21.（2026-10-30 更新，kit 第三批規範）返回鈕改 `btn btn-secondary`（kit 取代 10/29 的 btn-text），
+     仍固定在 Sheet 最左下角。語言／版本矩陣（.ver-cell）已是 .scroll-x 並凍結「版本」欄，符合
+     「可左右捲動的表格一律凍結名稱欄」。
+-->
+</head>
+<body data-page="kb-editor" data-crumb-last="(Possible) Cross site scripting">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <h1 class="kb-head">(Possible) Cross site scripting</h1>
+
+
+    <div class="page-tabs">
+      <button class="page-tab active" data-panel="info">詳細資料</button>
+      <button class="page-tab" data-panel="content">弱點內容</button>
+      <button class="page-tab" data-panel="cat">分類</button>
+      <button class="page-tab" data-panel="notes">註記</button>
+    </div>
+
+    <!-- ============ 詳細資料 ============ -->
+    <section class="tab-panel" data-panel-id="info">
+      <dl class="def-list">
+        <dt>掃描工具</dt><dd>Acunetix</dd>
+        <dt>原始識別碼</dt><dd>(Possible) Cross site scripting</dd>
+        <dt>CVSS</dt><dd>—</dd>
+        <dt>評等</dt><dd>資訊　<span class="tag tag-gray">來自掃描報告</span></dd>
+        <dt>審閱狀態</dt>
+        <dd>
+          <span class="tag tag-warning">待確認</span>
+          <span class="review-note">目前內容是掃描報告的原廠原文（英文），尚未改寫成要交付的中文說法。內容確認或補齊後，請標示為已確認。</span>
+        </dd>
+        <dt>最後修訂</dt><dd>李小明 · 2026/09/04 16:01</dd>
+      </dl>
+    </section>
+
+    <!-- ============ 弱點內容 ============ -->
+    <section class="tab-panel" data-panel-id="content" hidden>
+
+      <div class="section">
+        <div class="section-title">不隨版本</div>
+        <form class="form-ll">
+          <div class="ff">
+            <label>風險名稱 <span class="req">*</span></label>
+            <div class="ff-control">
+              <input class="input" value="(Possible) Cross site scripting">
+            </div>
+          </div>
+          <div class="ff">
+            <label>摘要</label>
+            <div class="ff-control wide">
+              <textarea class="input" rows="2" placeholder="一句話說明這是什麼問題，例：可能洩漏內部 IP 位址。"></textarea>
+              <p class="help">用在滲透測試報告的目錄與摘要列</p>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="section">
+        <div class="section-title">語言與版本</div>
+        <!-- scroll-x + 首欄 sticky-l／尾欄 sticky-r：語言之後可能越加越多，欄位只會一直變窄、
+             內容擠成一團，改成固定每個語言欄最小寬度（180px，量過裡面最長的 .ver-cell 自然寬度
+             215px 還留一點餘裕），超過容器寬度時改橫向捲動；「版本」留在左邊、「新增語言」留在
+             右邊兩欄 Fixed 住，捲動時才不會找不到目前是哪一列、也不會把新增語言的按鈕捲到看不見
+             （手法跟 scan-jobs.html 的 .table.scroll-x + .sticky-l/.sticky-r 同一套，kit.js
+             既有的捲動陰影偵測直接通用，不用額外寫）。目前只有 3 個語言，寬度還不到會觸發捲動
+             的門檻，外觀跟之前一樣；之後加到第 5、6 個語言才會真的開始橫向捲。 -->
+        <div class="table cols-fixed scroll-x">
+          <table>
+            <colgroup><col style="width:56px"><col style="width:180px"><col style="width:180px"><col style="width:180px"><col style="width:88px"></colgroup>
+            <thead>
+              <tr>
+                <th class="sticky-l">版本</th>
+                <th>繁中</th>
+                <th>英文</th>
+                <th>日文</th>
+                <th class="sticky-r"><span class="row-action action"><i class="fa-solid fa-plus"></i> 新增語言</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="sticky-l">V1</td>
+                <td><span class="ver-cell" data-lang="繁中" data-ver="V1" data-modified="2026/08/20 10:00" data-editor="李小明"><span class="ver-cell-label">V1</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td><span class="ver-cell" data-lang="英文" data-ver="V1" data-modified="2026/08/21 09:15" data-editor="John Carter"><span class="ver-cell-label">V1</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td><span class="ver-cell" data-lang="日文" data-ver="V1" data-modified="2026/08/22 11:40" data-editor="田中さくら"><span class="ver-cell-label">V1</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td class="sticky-r">—</td>
+              </tr>
+              <tr>
+                <td class="sticky-l">V2</td>
+                <td><span class="ver-cell" data-lang="繁中" data-ver="V2" data-nickname="內部審查版" data-modified="2026/08/28 14:30" data-editor="李小明"><span class="ver-cell-label">V2</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td><span class="ver-cell add"><i class="fa-solid fa-plus"></i>新增版本</span></td>
+                <td><span class="ver-cell" data-lang="日文" data-ver="V2" data-nickname="客戶交付版" data-modified="2026/08/30 17:05" data-editor="田中さくら"><span class="ver-cell-label">V2</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td class="sticky-r">—</td>
+              </tr>
+              <tr>
+                <td class="sticky-l">V3</td>
+                <td><span class="ver-cell is-default viewing" data-lang="繁中" data-ver="V3" data-nickname="主管推薦版,已核可" data-modified="2026/09/04 16:01" data-editor="李小明"><span class="ver-cell-label">V3</span><span class="ver-tag-default tag tag-success" style="padding:0 var(--space-xxs)">預設</span><i class="fa-solid fa-star icon-star" data-act="default" title="設為預設"></i><i class="fa-solid fa-trash icon-trash" data-act="delete" title="刪除"></i></span></td>
+                <td>—</td>
+                <td><span class="ver-cell add"><i class="fa-solid fa-plus"></i>新增版本</span></td>
+                <td class="sticky-r">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-sub" style="margin-top:var(--space-m)">基本資料</div>
+        <dl class="def-list" id="verBasicInfo">
+          <dt>目前版本</dt><dd id="verBasicInfo-current">繁中 · V3</dd>
+          <dt>最後修訂</dt><dd id="verBasicInfo-modified">2026/09/04 16:01</dd>
+          <dt>最後編輯者</dt><dd id="verBasicInfo-editor">李小明</dd>
+        </dl>
+      </div>
+
+      <!-- 可用變數改放在填寫欄位右手邊（.col-split main-side，跟 detail.html 定義列表＋
+           「參考資料」同一套排法），不用再捲到頁面最下面才找得到、也不用記代號——這些欄位
+           本來就是會用到 {代號} 的地方（尤其「建議修補方式」）。右欄跟著變窄，原本 2 欄並排
+           的 token 清單改單欄，跟「參考資料」的 link-list 一樣簡單直接 -->
+      <div class="col-split main-side">
+        <div class="prose-grid" style="margin-bottom:0">
+          <div>
+            <div class="field-title">版本簡稱</div>
+            <div class="tag-field" id="verNicknameField">
+              <input placeholder="輸入後按 Enter 新增標籤">
+            </div>
+          </div>
+          <div>
+            <div class="field-title">弱點說明</div>
+            <textarea class="input" rows="6" placeholder="這個弱點是什麼、為什麼會發生"></textarea>
+          </div>
+          <div>
+            <div class="field-title">建議修補方式</div>
+            <textarea class="input" rows="6" placeholder="怎麼修，可用 {代號} 帶入校對時填的值">您應該過濾使用者輸入的內容。</textarea>
+          </div>
+          <div>
+            <div class="field-title">弱點影響</div>
+            <textarea class="input" rows="3" placeholder="被利用後會造成什麼"></textarea>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-sub">可用變數</div>
+          <dl class="def-list">
+            <dt>掃描主機 IP</dt><dd class="token-list"><span class="token">{host}</span></dd>
+            <dt>外掛編號</dt><dd class="token-list"><span class="token">{plugin_id}</span></dd>
+            <dt>連接埠</dt><dd class="token-list"><span class="token">{port}</span></dd>
+            <dt>弱點名稱</dt><dd class="token-list"><span class="token">{vuln_title}</span></dd>
+            <dt>IP:Port</dt><dd class="token-list"><span class="token">{host_port}</span></dd>
+            <dt>嚴重程度</dt><dd class="token-list"><span class="token">{severity}</span></dd>
+            <dt>所有受影響主機</dt><dd class="token-list"><span class="token">{hosts}</span></dd>
+            <dt>CVSS 分數</dt><dd class="token-list"><span class="token">{cvss}</span></dd>
+            <dt>受影響主機數</dt><dd class="token-list"><span class="token">{host_count}</span></dd>
+            <dt>CVE 編號</dt><dd class="token-list"><span class="token">{cve}</span></dd>
+            <dt>發生位置數</dt><dd class="token-list"><span class="token">{occurrence_count}</span></dd>
+            <dt>掃描工具</dt><dd class="token-list"><span class="token">{scanner}</span></dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-sub">校對時要填的欄位</div>
+
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col style="width:180px"><col><col style="width:150px"><col style="width:68px"><col style="width:76px"><col style="width:72px"></colgroup>
+            <thead>
+              <tr>
+                <th>代號</th><th>顯示名稱</th><th>型別</th>
+                <th class="num-col">必填</th><th class="num-col">可多筆</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>affected_param</td><td>受影響參數</td><td>自由填寫</td>
+                <td class="num-col">是</td><td class="num-col">—</td>
+                <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action danger">刪除</span></div></td>
+              </tr>
+              <tr>
+                <td>payload</td><td>測試 payload</td><td>自由填寫</td>
+                <td class="num-col">—</td><td class="num-col">是</td>
+                <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action danger">刪除</span></div></td>
+              </tr>
+              <tr>
+                <td><input class="input" placeholder="例 service_name"></td>
+                <td><input class="input" placeholder="給校對者看的名稱"></td>
+                <td><div class="selector"><span>自由填寫</span><i class="fa-solid fa-angle-down"></i></div></td>
+                <td class="num-col"><input type="checkbox"></td>
+                <td class="num-col"><input type="checkbox"></td>
+                <td style="text-align:right"><span class="row-action action">新增</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ 分類（待設計稿） ============ -->
+    <section class="tab-panel" data-panel-id="cat" hidden>
+      <div class="wip"><i class="fa-solid fa-tags"></i><p>「分類」分頁待設計稿確認後補上</p></div>
+    </section>
+
+    <!-- ============ 註記（待設計稿） ============ -->
+    <section class="tab-panel" data-panel-id="notes" hidden>
+      <div class="wip"><i class="fa-solid fa-comment-dots"></i><p>「註記」分頁待設計稿確認後補上</p></div>
+    </section>
+
+    <div class="sheet-footer">
+      <a class="btn btn-secondary" href="kb-list.html"><i class="fa-solid fa-arrow-left"></i>返回清單</a>
+      <div class="right">
+        <button class="btn btn-secondary"><i class="fa-solid fa-check"></i>標示為已確認</button>
+        <button class="btn btn-secondary">另存新版</button>
+        <button class="btn btn-primary">儲存</button>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+</main>
+
+<script src="scan-shell.js"></script>
+<script src="../assets/kit.js"></script>
+<script>
+  /* 語言/版本切換表：
+     - 點格子本身＝切換「viewing」（下面基本資料 + 內容區塊要顯示哪一格），demo 用，
+       沒有真的換 弱點說明/建議修補方式 的內容，只更新「基本資料」def-list。
+     - 點星號＝把「預設」移到這格（同語言只能有一個預設，跟 viewing 是獨立狀態）。
+     - 點垃圾桶＝刪除這個版本（demo 用 confirm() 代替正式的刪除確認 modal）；
+       目前預設的版本不能刪，要先把預設移到別的版本。
+     - 表頭「新增語言」、.add（新增版本）是靜態展示，先不接流程。 */
+  (function () {
+    var table = document.querySelector('#verBasicInfo').closest('.section').querySelector('table');
+    var nickField = document.getElementById('verNicknameField');
+    var nickInput = nickField.querySelector('input');
+
+    function getNicknames(cell) {
+      return (cell.dataset.nickname || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+    function renderCellLabel(cell) {
+      var label = cell.querySelector('.ver-cell-label');
+      if (label) label.textContent = cell.dataset.ver;
+      cell.querySelectorAll('.ver-cell-nick').forEach(function (t) { t.remove(); });
+      var anchor = label;
+      getNicknames(cell).forEach(function (name) {
+        var tag = document.createElement('span');
+        tag.className = 'tag tag-gray ver-cell-nick';
+        tag.textContent = name;
+        anchor.insertAdjacentElement('afterend', tag);
+        anchor = tag;
+      });
+    }
+    /* 版本簡稱改多選標籤（2026-09-18）：data-nickname 存成逗號分隔字串，
+       .tag-field 依目前 viewing 的格子渲染出對應標籤，新增/刪除標籤直接改
+       該格的 data-nickname，同步更新表格裡的版本簡稱顯示跟下面基本資料。 */
+    function renderNicknameField(cell) {
+      nickField.querySelectorAll('.tag').forEach(function (t) { t.remove(); });
+      getNicknames(cell).forEach(function (name) {
+        var tag = document.createElement('span');
+        tag.className = 'tag tag-gray';
+        tag.innerHTML = name + ' <i class="fa-solid fa-circle-xmark" data-remove></i>';
+        nickField.insertBefore(tag, nickInput);
+      });
+    }
+    function setNicknames(cell, names) {
+      cell.dataset.nickname = names.join(',');
+      renderCellLabel(cell);
+      if (cell.classList.contains('viewing')) {
+        document.getElementById('verBasicInfo-current').textContent = cell.dataset.lang + ' · ' + cell.dataset.ver + (names.length ? ' ' + names.join('、') : '');
+      }
+    }
+    function setViewing(cell) {
+      table.querySelectorAll('.ver-cell.viewing').forEach(function (c) { c.classList.remove('viewing'); });
+      cell.classList.add('viewing');
+      document.getElementById('verBasicInfo-current').textContent = cell.dataset.lang + ' · ' + cell.dataset.ver + (cell.dataset.nickname ? ' ' + getNicknames(cell).join('、') : '');
+      document.getElementById('verBasicInfo-modified').textContent = cell.dataset.modified;
+      document.getElementById('verBasicInfo-editor').textContent = cell.dataset.editor;
+      renderNicknameField(cell);
+    }
+    function setDefault(cell) {
+      var lang = cell.dataset.lang;
+      table.querySelectorAll('.ver-cell[data-lang="' + lang + '"]').forEach(function (c) { c.classList.remove('is-default'); });
+      cell.classList.add('is-default');
+    }
+    table.querySelectorAll('.ver-cell:not(.add)').forEach(function (cell) {
+      cell.addEventListener('click', function (e) {
+        var icon = e.target.closest('[data-act]');
+        if (icon) {
+          e.stopPropagation();
+          if (icon.dataset.act === 'default') setDefault(cell);
+          if (icon.dataset.act === 'delete') {
+            if (cell.classList.contains('is-default')) {
+              alert('這是目前的預設版本，請先把其他版本設為預設，才能刪除這一版。');
+              return;
+            }
+            if (confirm('確定要刪除「' + cell.dataset.lang + ' ' + cell.dataset.ver + '」這個版本嗎？此動作無法復原。')) {
+              cell.closest('td').innerHTML = '<span class="ver-cell add"><i class="fa-solid fa-plus"></i>新增版本</span>';
+            }
+          }
+          return;
+        }
+        setViewing(cell);
+      });
+    });
+    nickInput.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || !this.value.trim()) return;
+      e.preventDefault();
+      var cell = table.querySelector('.ver-cell.viewing');
+      if (!cell) return;
+      var names = getNicknames(cell);
+      names.push(this.value.trim());
+      setNicknames(cell, names);
+      this.value = '';
+      renderNicknameField(cell);
+    });
+    nickField.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-remove]');
+      if (!btn) return;
+      var cell = table.querySelector('.ver-cell.viewing');
+      if (!cell) return;
+      var name = btn.closest('.tag').textContent.trim();
+      setNicknames(cell, getNicknames(cell).filter(function (n) { return n !== name; }));
+      renderNicknameField(cell);
+    });
+    table.querySelectorAll('.ver-cell:not(.add)').forEach(renderCellLabel);
+    var initialCell = table.querySelector('.ver-cell.viewing');
+    if (initialCell) renderNicknameField(initialCell);
+  })();
+</script>
+</body>
+</html>

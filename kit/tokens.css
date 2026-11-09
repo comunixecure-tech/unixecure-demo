@@ -1,0 +1,314 @@
+/* =============================================================
+   uniXecure UI Kit — Design Tokens
+   來源：Figma「Unixecure Design」library（team library）
+   用法：在原型的 HTML <head> 引入本檔，或複製進你的 CSS。
+        深色模式：在 <html> 或容器加上 data-theme="dark"
+   注意：色階名稱、數值都對齊 Figma 變數，不要自行改動或補色。
+        沒把握的值標了 TODO，需要時回 Figma 對。
+   ============================================================= */
+
+:root {
+  /* ---------- 字體 ---------- */
+  --font-family: "PingFang TC", "PingFang SC", "Microsoft JhengHei",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* 字級：font-size / line-height（字重見下方 --weight-*） */
+  --text-big:            50px/70px var(--font-family);   /* Semibold */
+  --text-title:          36px/48px var(--font-family);   /* Semibold */
+  --text-heading:        30px/40px var(--font-family);   /* Semibold */
+  --text-subheading:     24px/36px var(--font-family);   /* Semibold */
+  --text-button:         20px/32px var(--font-family);   /* Regular / Semibold */
+  --text-body:           16px/28px var(--font-family);   /* Regular / Semibold */
+  --text-caption:        14px/24px var(--font-family);   /* Regular / Semibold */
+  --text-caption2:       12px/18px var(--font-family);   /* Regular / Semibold */
+  --text-cap3:            8px/12px var(--font-family);    /* Regular / Semibold */
+
+  --weight-regular: 400;
+  --weight-semibold: 600;
+
+  /* ---------- 間距（number/*） ---------- */
+  --space-0: 0;
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-s: 12px;
+  --space-m: 16px;
+  --space-xl: 24px;      /* 注意：沒有 L，M(16) 直接跳 XL(24) */
+  --space-big: 32px;
+
+  /* ---------- 圓角 ---------- */
+  --radius-btn: 2px;     /* 按鈕、input、selector、dropdown、checkbox、pagination */
+  --radius-card: 4px;    /* tag、表格容器、卡片、modal、drawer、Namebar、Sheet 大白卡 */
+  --radius-stat: 8px;    /* 統計格（KPI）、儀表板圖表卡等小圖表；大白卡仍是 4px */
+  --radius-checkbox: 2px;
+
+  /* ---------- 陰影 ---------- */
+  --shadow-normal: 0 0 10px rgba(51, 51, 51, 0.1);      /* normal-light */
+  --shadow-nav: 0 4px 30px rgba(94, 105, 203, 0.1);     /* Navigation 專用 */
+
+  /* =========================================================
+     色盤（固定色階，Light 模式值）
+     深色模式在下方 [data-theme="dark"] 整段覆蓋
+     ========================================================= */
+
+  /* Primary（品牌主色，核心＝700） */
+  --primary-50:  #f2f4fc;
+  --primary-100: #e1e7f8;
+  --primary-200: #c9d5f4;
+  --primary-300: #a4bbec;
+  --primary-400: #7997e1;
+  --primary-500: #5a75d7;
+  --primary-600: #465aca;
+  --primary-700: #3c49ba;   /* 主色 */
+  --primary-800: #363e97;
+  --primary-900: #303878;
+  --primary-950: #21234a;
+
+  /* Secondary（琥珀，無 Light/Dark 之分） */
+  --secondary-50:  #fffaeb;
+  --secondary-100: #fff2c6;
+  --secondary-200: #ffe288;
+  --secondary-300: #ffcd4a;
+  --secondary-400: #ffb415;
+  --secondary-500: #f99507;
+  --secondary-600: #dd6e02;
+  --secondary-700: #b74c06;
+  --secondary-800: #94390c;
+  --secondary-900: #7a2f0d;
+  --secondary-950: #461702;
+
+  /* Grayscale */
+  --gray-50:  #f8f8f8;
+  --gray-100: #f0f0f0;
+  --gray-200: #dddddd;
+  --gray-300: #cccccc;
+  --gray-400: #aaaaaa;
+  --gray-500: #999999;
+  --gray-600: #888888;
+  --gray-700: #555555;
+  --gray-800: #333333;
+  --gray-900: #0d0d0d;
+
+  /* 狀態色：5 種，各含 100 / 300 / 500 / 700 / 900 */
+  --success-100: #e7fad2;
+  --success-300: #a0e375;
+  --success-500: #41a320;
+  --success-700: #1b7510;
+  --success-900: #064e08;
+
+  --info-100: #d3f2fe;
+  --info-300: #7dcdfd;
+  --info-500: #2795fb;
+  --info-700: #1356b4;
+  --info-900: #072a78;
+
+  --warning-100: #fef3cc;
+  --warning-300: #fecf66;
+  --warning-500: #fc9c02;
+  --warning-700: #b56201;
+  --warning-900: #783700;
+
+  --danger-100: #fde2d0;
+  --danger-300: #f69074;
+  --danger-500: #e1251b;
+  --danger-700: #a20d1e;
+  --danger-900: #6c0522;
+
+  --critical-100: #f5ebfa;
+  --critical-300: #bd95e3;
+  --critical-500: #8449ae;
+  --critical-700: #602c82;
+  --critical-900: #3d1657;
+
+  /* 圖表色（15 色分類色階，多序列時依序取用） */
+  --chart-1:  #3c49ba;
+  --chart-2:  #8449ae;
+  --chart-3:  #b6449f;
+  --chart-4:  #db4889;
+  --chart-5:  #ec5970;
+  --chart-6:  #ed7359;
+  --chart-7:  #f19549;
+  --chart-8:  #ffb415;
+  --chart-9:  #fce567;
+  --chart-10: #e2ed65;
+  --chart-11: #bdec74;
+  --chart-12: #51dea4;
+  --chart-13: #54e5e9;
+  --chart-14: #a7e5ff;
+  --chart-15: #e1e7f8;
+
+  /* Tag（文字色 / 底色 成對） */
+  --tag-red-text:    #e1251b;  --tag-red-bg:    #fde2d0;
+  --tag-yellow-text: #fc9c02;  --tag-yellow-bg: #fef3cc;
+  --tag-green-text:  #41a320;  --tag-green-bg:  #e7fad2;
+  --tag-blue-text:   #2795fb;  --tag-blue-bg:   #d3f2fe;
+  --tag-gray-text:   #333333;  --tag-gray-bg:   #f0f0f0;
+  --tag-purple-text: #8449ae;  --tag-purple-bg: #f5ebfa;
+
+  /* Logo 專用色（只有 logo 用，不是品牌色，別拿來當強調色） */
+  --logo-red:   #e1251b;
+  --logo-black: #040000;
+  --logo-gray:  #606060;
+
+  /* =========================================================
+     語意色（會隨主題切換的那一層）— Light 模式
+     ========================================================= */
+  --bg-surface:  #f0f0f0;   /* 最底層頁面底色 */
+  --bg-default:  #ffffff;   /* 卡片 / 容器 */
+  --bg-hover:    #f8f8f8;
+  --bg-actived:  #f2f4fc;
+  --bg-disable:  #f0f0f0;
+  --bg-focus:    #fffaeb;   /* 表格列聚焦 / input 聚焦底 */
+  --bg-color:    #f2f4fc;   /* surface/color，Primary/Light/50。用途不明，Figma 有這顆先收進來，用到再套 */
+
+  --text-color:      #333333;
+  --text-disable:    #aaaaaa;
+  --text-link:       #3c49ba;
+  --text-menu:       #3c49ba;   /* 側欄選單目前項；深色模式為琥珀 */
+  --text-on-primary: #ffffff;
+
+  --border-default: #dddddd;   /* 也是 disable 邊框 */
+  --border-hover:   #a4bbec;   /* hover / 聚焦邊框 */
+  --border-table:   #f0f0f0;
+  --table-title-bg:        #f0f0f0;   /* 表頭底 */
+  --table-title-bg-active: #dddddd;   /* 排序中欄位的表頭底（Tabletitle/hover&focus） */
+
+  --overlay: rgba(13, 13, 13, 0.5);   /* mask-light：Grayscale/Light/900 @ 50% */
+
+  /* 內容白底：每個內頁的物件都放在這張白色 sheet 上，sheet 再浮在 --bg-surface 上 */
+  --sheet-bg: #ffffff;
+
+  /* 頁尾。淺色 ＝ footer/base 灰；深色見下方 dark 區塊。
+     註：Figma 目前 footer 還沒綁主題（各產品各設一版），這裡先讓它跟著切，Aimi 之後會把 Figma 補齊 */
+  --footer-bg:   #e1e2e9;
+  --footer-text: #696e95;
+
+  /* 側欄底色：各產品自訂。RAVEN = 深色 navy；智慧資安 / BASE = 淺色。
+     預設給 RAVEN 的深色；做淺色產品時在 :root 覆寫成 --gray-50 / --text-color */
+  --sidebar-bg: #1b1c26;
+  --sidebar-text: #ffffff;
+
+  /* theme-base（智慧資安 / BASE 淺色側欄）：固定淺色，不隨深色模式切換。
+     只定義在 :root、深色區塊不覆寫，所以永遠是這組值。將來要客製再拆產品變數 */
+  --base-sidebar-bg:     #f8f8f8;
+  --base-sidebar-text:   #333333;
+  --base-sidebar-hover:  #eeeeee;
+  --base-sidebar-active: #3c49ba;
+
+  /* 互動色（對齊 Figma action/* 群；按鈕、連結、目前分頁、primary tag 共用） */
+  --btn-default:      #3c49ba;   /* action/default */
+  --btn-hover:        #5a75d7;   /* action/hover */
+  --btn-actived:     #363e97;   /* action/actived（按下）Primary/Light/800 */
+  --btn-neutral-hover: #cccccc; /* action/hover-2（Secondary / Text 按鈕的灰 hover）*/
+  --btn-disable:      #dddddd;   /* action/disable */
+  --btn-success:      #41a320;   /* action/success */
+  --btn-success-hover: #a0e375;  /* action/success-hover */
+  --btn-danger:       #e1251b;   /* action/danger */
+  --btn-danger-hover: #f69074;   /* action/danger-hover */
+  --btn-info:         #2795fb;   /* action/Info（表格「編輯」這種次要操作連結）*/
+  --btn-info-hover:   #7dcdfd;   /* action/Info-hover */
+
+  /* 表格尺寸 token */
+  --table-padding-h: 12px;
+  --table-padding-h9: 9px;   /* Figma 有這個變體，某些欄用 9 */
+  --table-padding-v: 8px;
+  --table-padding-v2: 4px;   /* 選單第三層 */
+  --table-head-h: 34px;
+  --table-cell-h: 40px;
+}
+
+/* =============================================================
+   深色模式：覆蓋色盤 + 語意色
+   ============================================================= */
+:root[data-theme="dark"] {
+  /* Primary（深色模式色相不同，不是只是變暗） */
+  --primary-50:  #f4f7fe;
+  --primary-100: #dce6fd;
+  --primary-200: #bed0fa;
+  --primary-300: #93b4f8;
+  --primary-400: #6e97f6;
+  --primary-500: #527df0;
+  --primary-600: #3b62d6;
+  --primary-700: #2a47a8;
+  --primary-800: #1d3178;
+  --primary-900: #131f4d;
+  --primary-950: #0c132e;
+
+  /* Grayscale（深色模式的灰階＝深色表面階） */
+  --gray-50:  #e1e2e9;
+  --gray-100: #c3c5d4;
+  --gray-200: #a5a8bf;
+  --gray-300: #878baa;
+  --gray-400: #696e95;
+  --gray-500: #545877;
+  --gray-600: #3f4259;
+  --gray-700: #313345;
+  --gray-800: #232431;
+  --gray-900: #15161d;
+
+  /* 狀態色（深色模式整組換值） */
+  --success-100: #0d3818;  --success-300: #1b6e32;  --success-500: #4ade80;  --success-700: #86efac;  --success-900: #dcfce7;
+  --info-100:    #0c2d48;  --info-300:    #1d5987;  --info-500:    #38bdf8;  --info-700:    #7dd3fc;  --info-900:    #e0f2fe;
+  --warning-100: #3d2605;  --warning-300: #8a560b;  --warning-500: #fbbf24;  --warning-700: #fde68a;  --warning-900: #fef3c7;
+  --danger-100:  #42120c;  --danger-300:  #7f2318;  --danger-500:  #ef4444;  --danger-700:  #fca5a5;  --danger-900:  #fee2e2;
+  --critical-100:#2e103e;  --critical-300:#582075;  --critical-500:#a855f7;  --critical-700:#d8b4fe;  --critical-900:#f3e8ff;
+
+  /* Tag（深色模式，全部對齊 Figma Tag/*/Dark） */
+  --tag-red-text:    #ef4444;  --tag-red-bg:    #42120c;
+  --tag-yellow-text: #fbbf24;  --tag-yellow-bg: #3d2605;
+  --tag-green-text:  #4ade80;  --tag-green-bg:  #0d3818;
+  --tag-purple-text: #a855f7;  --tag-purple-bg: #2e103e;
+  --tag-blue-text:   #38bdf8;  --tag-blue-bg:   #0c2d48;
+  --tag-gray-text:   #ffffff;  --tag-gray-bg:   #15161d;
+
+  --logo-black: #ffffff;
+
+  /* 語意色 — Dark */
+  --bg-surface:  #15161d;
+  --bg-default:  #232431;
+  --bg-hover:    #313345;
+  --bg-actived:  #3f4259;
+  --bg-disable:  #313345;
+  --bg-focus:    #131f4d;   /* surface/focus 深＝Primary/Dark/900 */
+  --bg-color:    #1d3178;   /* surface/color 深＝Primary/Dark/800（2026-09-11 Aimi 調整，原本 Primary/Dark/900） */
+
+  --text-color:   #ffffff;
+  --text-disable: #a5a8bf;
+  --text-link:    #3b62d6;   /* = action/primary 深色（Primary/Dark/600）；跟 --btn-default 一致 */
+  --text-menu:    #ffb415;
+
+  --border-default: #c3c5d4;
+  --border-hover:   #6e97f6;
+  --border-table:   #3f4259;
+  --table-title-bg:        #313345;
+  --table-title-bg-active: #3f4259;
+
+  --sheet-bg: #232431;
+
+  --footer-bg:   #313345;   /* 深色頁尾 ＝ --gray-700 深，跟 RAVEN footer/moc 一致 */
+  --footer-text: #ffffff;
+
+  --overlay: rgba(84, 88, 119, 0.7);   /* mask-dark：Grayscale/Dark/500 @ 70% */
+
+  --btn-default:       #3b62d6;   /* action/default 深 */
+  --btn-hover:         #6e97f6;   /* action/hover 深（Primary/Dark/400） */
+  --btn-actived:      #2a47a8;   /* action/actived 深（Primary/Dark/700） */
+  --btn-neutral-hover: #878baa;  /* action/hover-2 深 */
+  --btn-disable:       #c3c5d4;   /* action/disable 深 */
+  --btn-success:       #4ade80;
+  --btn-success-hover: #86efac;
+  --btn-danger:        #ef4444;
+  --btn-danger-hover:  #fca5a5;   /* action/danger-hover 深（Status/Danger/Dark/700） */
+  --btn-info:          #38bdf8;
+  --btn-info-hover:    #7dd3fc;   /* action/Info-hover 深（Status/Info/Dark/700） */
+
+  --shadow-normal: 0 0 10px #090a0d;   /* normal-dark */
+}
+
+/* 基本套用（原型可直接吃，不想吃就自己在 body 設） */
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--text-color);
+  background: var(--bg-surface);
+}

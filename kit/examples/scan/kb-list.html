@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VulnEye｜弱點知識庫</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  /* VulnEye 的頁面標題統一 24px（Aimi 拍板，詳情頁也是 24px），不用 kit .page-head h1 預設的 30px */
+  .page-head h1 { font: var(--weight-semibold) var(--text-subheading); }
+</style>
+<!--
+  統計卡（審閱狀態／工具佔比）：吃 kit 的 .chart-donut-wrap.is-corner（donut 真置中、圖例貼右上、
+  比率貼右下，Figma 8626:99357），卡片內距、page-tabs 下方 16px、toolbar 垂直置中、.chart-head
+  跟灰底的 8px 距離 kit 都已經收進去，本頁不再有自己的覆蓋。（2026-09-21 kit 更新後清掉）
+  「掃描工具」「審閱狀態」選項少（3～4 個）、單選，Aimi 覺得收在下拉選單裡要多一次
+  點擊才看得到全部選項，改直接展開成 kit 現成的 .view-toggle 連體按鈕（跟「依主機／
+  依弱點」同款元件，不是自創）。（2026-09-18 更新）Aimi 覺得原本 view-toggle 跟
+  關鍵字 chip 擠在同一排、還多補一個灰字標籤不好看，改成兩排：第一排純 view-toggle
+  （拿掉灰字標籤，改用「全部掃描工具」「全部審閱狀態」這種完整文字自己說明按鈕群組
+  是什麼，不用額外標籤），第二排是原本的下拉選單型 chip（關鍵字＋已套用的 tag）。
+  拿掉多餘的 .filter-toggle 包裝，data-field 直接放在 .view-toggle 上。
+  篩選列／表格／分頁的 8px 留白、.view-toggle 相鄰按鈕 border 重疊與選中 z-index，kit 都已收進去，
+  本頁不再自己覆蓋。（2026-09-21 kit 更新後清掉）
+  （2026-09-29 更新）.tone-toggle 這套依 tag 色上色的規則，加上 scan-jobs.html 是第三個用到的
+  地方，已經收進 kit.css 正式版（用法、tone 值同這頁的 data-tone），本頁原本的 page-local
+  .tone-toggle CSS 全部拿掉改吃 kit，HTML 不用動。
+-->
+<!--
+  超規範判斷（給 Aimi 覆核）：
+  1. examples/scan/ 自帶薄殼。
+  2. 主管版藍色實心大數字卡 → 統計區塊改用三張 kit `.chart-card`（含標準 header 工具列），
+     背景統一 `--bg-hover`（kit 預設 `--bg-default` 白會跟白色 sheet 融在一起，看不出卡片邊界）；
+     有框篩選卡 → 收進一般 toolbar（純搜尋框保留、掃描工具 / 審閱狀態轉 filter chip）。
+  3.（已被第 19 條取代）「84 筆待確認」原本用 Message 彩色版，常駐在頁面而非 toast，
+     純文字通知，不帶動作按鈕；2026-09-18 Aimi 要求整條移除，這條留記錄。
+  4. 「分類系統」tab 與「知識庫條目編輯器」的 分類 / 註記 tab 尚待設計稿，先放佔位。
+  5.（已被第 12 條取代）「知識庫總計」卡曾經是 Figma 元件庫 3740-3574 的統計卡結構
+     （標題切「全部／待確認」＋數字＋單位），標題切換對齊 RAVEN 18906-61693 的純文字
+     tab 樣式；.stat-toggle 後來回寫進 kit.css/kit.js 變正式元件（2026-09-11）。
+     2026-09-18 改成圓餅圖，這條保留記錄改版歷程。
+  6.（2026-09-11 更新）toolbar-actions 按鈕（匯出／匯入／新增項目）補上 .btn-sm——
+     kit 這條規則（列表頁右上角按鈕統一 S）是稍早 commit d7abfe1 加的，回顧 kit 更新時
+     漏看了這條，Aimi 抓到後補上。
+  7.（2026-09-11 更新）toolbar-actions 按鈕跟左邊「共 N 筆」/chip 沒有垂直對齊——kit.css
+     的 .toolbar 用 align-items:flex-start，兩側天生高度不同（chip 列矮、按鈕列高），
+     頂部對齊會看起來按鈕偏低。這是 kit 共用元件的問題，list.html 官方範例應該也會中，
+     本頁補 .toolbar{align-items:center} 局部修正，沒動 assets/kit.css，建議回寫。
+  8.（已被第 12 條取代）「知識庫總計」卡中間留白曾經太大，2026-09-14 改成切換列留頂端
+     當標題、數字列自己置中；2026-09-18 整張卡改圓餅圖後這個排版問題不存在了，這條
+     保留記錄改版歷程。
+  9.（2026-09-14 更新）篩選列跟表格、表格跟分頁之間留白 Aimi 覺得太大——kit.css
+     這兩個間距都用 --space-m(16px)，改成 --space-xs(8px)。
+  10.（2026-09-18 更新，第二次修正）「掃描工具」「審閱狀態」兩個 filter chip 選項少、
+     單選，Aimi 覺得收在下拉選單裡要多點一次才看得到全部選項，改直接展開。重用 kit
+     現成的 .view-toggle 連體按鈕（跟本頁「依主機／依弱點」那種二選一同款元件，這裡是
+     3～4 選一，.view-toggle 本身沒限制按鈕數）。點擊行為直接吃 kit.js 既有的
+     view-toggle 全域監聽，沒有另外寫 page-local script。第一版把 view-toggle 跟
+     關鍵字 chip 擠在同一排、還多補灰字標籤，Aimi 覺得不好看；改成兩排：第一排純
+     view-toggle（拿掉灰字標籤，用「全部掃描工具」「全部審閱狀態」這種完整文字自己
+     說明按鈕群組是什麼），第二排是原本的下拉選單型 chip（關鍵字＋已套用的 tag）。
+     嚴重度那種已經有 5 個選項的多選欄位還是留在下拉選單，選項一多展開會把工具列
+     撐得太長。
+  11.（2026-09-18 更新）kit gap（回報 Aimi）：.view-toggle 相鄰按鈕交界處兩條 1px
+     border 疊在一起看起來變 2px，比外框粗。改 margin-left:-1px 讓邊界重疊成一條，
+     hover/focus 時補 z-index 讓該按鈕的完整 border 顯示在上層。這是共用元件本身的
+     問題（scan-detail.html 的依主機/依弱點按鈕也一樣），已經在兩個檔案都補上一樣的
+     局部修正，建議直接回寫進 kit.css。
+  12.（2026-09-18 更新，取代第 5、8 條）「知識庫總計」卡從「全部／待確認文字切換＋
+     單一數字」改成圓餅圖，Aimi 覺得這樣比較好看。改用 kit 既有的 chart-donut +
+     chart-legend（跟旁邊「工具佔比」donut 同款元件，不是自創），顏色對應本頁表格
+     「審閱狀態」欄已經在用的 tag 色：已確認＝success（綠）、待確認＝warning（橘）。
+     拿掉這張卡原本的專屬寬度（flex:0 0 240px），改跟另外兩張卡一樣 flex:1 等寬，
+     三張卡風格統一。
+  13.（2026-09-18 更新）「掃描工具」「審閱狀態」view-toggle 選中樣式改版：Aimi 覺得
+     兩排都用實心 btn-primary，藍色一多反而互相干擾、不顯眼。掃描工具是純分類，沒有
+     固定顏色身份，選中改參考 btn-secondary 的 hover/actived 樣式（邊框＋文字變藍、
+     底色維持白色）；審閱狀態的已確認／待確認本來就有規範 tag 色 token
+     （--success-500／--warning-500，跟第 12 條的圓餅圖、表格 tag 同一組），選中
+     直接借用同一套顏色語言，「全部審閱狀態」沒有對應色，跟掃描工具一樣用中性藍框。
+     用 data-tone 屬性標記每顆按鈕該用哪個顏色，CSS 蓋掉選中時 kit.css 預設的實心
+     填色，JS 完全沒動，kit.js 的 view-toggle 全域監聽照常切換 .btn-primary/
+     .btn-secondary，不影響 scan-detail.html 的依主機/依弱點（那邊維持原本的實心
+     primary，沒有相鄰太多顏色互相干擾的問題）。
+     （2026-09-18 第二次修正）Aimi 抓到兩個問題：① 選中狀態的框線完全沒顯示——
+     根本原因是 kit.css 的 .btn-primary 本來就沒有 border-width/style（filled
+     按鈕本來不需要框），第一版只蓋 border-color，等於在「沒有框」的基礎上換顏色，
+     當然畫不出來，改成完整 border 簡寫（1px solid）才真的有框。② 已確認／待確認
+     這種有 tag 色的欄位，Aimi 要求不管選中與否都要上色，不是只有選中才變色——改成
+     data-tone 直接控制文字色（.btn-primary/.btn-secondary 都套用），選中時才額外
+     補同色框做出「actived」的視覺區隔，未選中維持 kit 預設的灰框。
+  14.（2026-09-18 更新）三張統計卡（知識庫總計／依工具統計／工具佔比）背景改版：
+     Aimi 參考另一份設計稿，卡片不要整塊灰底，改回一般卡片白底＋細框（跟 kit 的
+     .card 同款：background:--bg-default + border:1px solid --border-default）；
+     只有實際畫圖表的區域（.chart-donut-wrap / .chart-bars）用 Tabletitle/default
+     這個 token（＝--table-title-bg，跟表頭底同一組色）當底色＋圓角，框出「這裡是
+     圖表」的範圍，標題行維持卡片本身的白底，讓標題／圖表兩層有明確區隔。圖表標題
+     沒有加 icon（Aimi 參考的設計稿範例圖表名稱前面有 icon，但這頁維持純文字）。
+     （2026-09-18 第二次修正）Aimi 又給了一份長條圖／圓餅圖切換的設計稿參考排列
+     比例：圖例固定在圖表區右上角（不是跟 donut 並排）、donut 置中放大、額外的
+     數量說明文字放右下角；同時要求「不要有灰色 border」，把上一版剛加的卡片外框
+     拿掉（改動①的 border:1px solid --border-default 這條刪掉，只留白底）。
+     donut 從 96px 放大到 120px，.chart-donut-wrap 改 padding-top:56px 幫圖例
+     留空間、align-items:flex-start 讓 donut 不會跟圖例垂直置中互相重疊——用
+     getBoundingClientRect() 量過圓心到圖例最近角的距離，確認大於半徑才收工。
+     「知識庫總計」卡的「共 949 筆…」說明文字從圖例內移出來，獨立用
+     .kb-total-caption 定位在右下角。
+  15.（2026-09-18 第三次修正）Aimi 五點回饋，一次處理：
+     ① 拿掉右上角表格/圖表切換的小 icon 工具列（依工具統計、工具佔比兩張卡都有）。
+     ② 灰底跟內容物「完全貼齊」的根本原因：absolute 定位元素的 containing block
+        是父層的 padding box，不是 content box，上一版 .chart-legend/.kb-total-
+        caption 用 top:0/right:0/bottom:0，等於直接貼齊 .chart-donut-wrap 的
+        padding 邊緣、無視 padding:var(--space-m)。改成明確給 var(--space-m) 的
+        inset，量過（getBoundingClientRect）確認四邊距離都是 16px。
+     ③ .chart-legend 上下 gap 從 kit 預設的 --space-xs(8px) 收緊成 --space-xxs(4px)。
+     ④ 「依工具統計」長條圖 .bar 從 width:100%（撐滿整個 .col）改固定 width:40px，
+        置中在 .col 裡，視覺上變細。
+     ⑤ 卡片改版，從三張變四張：原本「知識庫總計」donut 拆成兩張獨立卡——
+        「知識庫總計」改回純數字（重用 scan-detail.html scope-cards 已經有的
+        .stat-num 元件，不是自創），只顯示總數 949；已確認／待確認donut 拆出來
+        獨立成一張新卡「審閱狀態」，視覺跟原本一樣。四張卡改用 .dash-grid + .span-3
+        （跟 scan-detail.html 的 scope-cards 同款 2×2 排法），拿掉自己寫的 kb-stats
+        flex 版面；.kb-total-caption 因為總數已經獨立成卡，不再需要，一併移除。
+     ⑥ .chart-head 跟下面圖表灰底的間距從 kit 預設 --space-m(16px) 收緊成
+        --space-xs(8px)（.kb-stats .chart-head 局部覆寫）。
+  16.（2026-09-18 更新）Layout 討論：Aimi 指出頁面最上面那條 toolbar（共 949 筆／
+     匯出／匯入／新增項目）其實是「風險項目」清單的資料，不該放在 page-tabs 外面
+     變成整頁通用——切到「分類系統」分頁時這排跟畫面內容無關，語意上不對。把
+     .toolbar 從 .sheet 最外層搬進 <section data-panel-id="items"> 裡面，只有
+     風險項目分頁會顯示；分類系統分頁之後有自己的需求再另外設計，不共用這排。
+     搬進去的同時跟 Aimi 給的排列示意合併：原本兩排 filter-chips 的第二排（關鍵字
+     chip）跟 toolbar 合併成一排——重用 kit 既有的 .toolbar > .toolbar-left（放
+     count-note＋filter-chips）+ .toolbar-actions 這個標準組合（scan-jobs.html
+     已經在用同一套寫法，不是自創），共 949 筆／關鍵字 chip 在左，匯出/匯入/新增
+     項目在右，kit.css 的 .toolbar-left .filter-chips{margin:0} 自動處理內層
+     filter-chips 不重複疊 margin。第一排 view-toggle（掃描工具/審閱狀態）維持
+     獨立一排在 toolbar 上面。
+  17.（2026-09-18 更新）小圖表卡拿掉「依工具統計」（長條圖），Aimi 覺得三張夠、
+     不需要長條圖那張。剩下知識庫總計／審閱狀態／工具佔比三張改用 .span-2（6 欄
+     grid 三等分一排），拿掉只有 chart-bars 在用的 CSS（.chart-bars 背景/padding、
+     .bar 變細那條）。
+  18.（2026-09-18 更新）三處小修正：
+     ① 「全部審閱狀態」按鈕文字縮短成「全部狀態」。
+     ② 審閱狀態的「待確認」從 warning（橘）改成中性灰——跟表格「審閱狀態」欄的
+        tag-gray、donut 圖表的 --gray-300 segment、view-toggle 的 data-tone="gray"
+        （新增這個 tone，用 --gray-500 當文字/選中框色，跟 success-500/warning-500
+        同一個「500 級」命名邏輯配對）三處一起改，維持顏色語言一致。
+     ③ 圓餅圖置中：Aimi 反應圖表往下掉，原因是 .chart-donut-wrap 用
+        align-items:flex-start + padding-top:56px 硬把 donut 往下推、讓右上角的
+        圖例有位置，這樣重心自然偏下不是真的置中。改回 align-items:center 讓 donut
+        真正置中，同時把 min-height 從 200px 加到 260px 保留足夠高度給右上角圖例
+        （用 getBoundingClientRect 量過圓心到圖例最近角的距離，確認兩張圖表卡都
+        上下/左右對稱且圖例不重疊）。
+  19.（2026-09-18 第四次修正）Aimi 四點回饋：
+     ① 「共 949 筆知識庫項目」文案縮短成「共 949 筆項目」（跟表格上方 toolbar 的
+        「新增項目」等用詞對齊，不重複講「知識庫」）。
+     ② 拿掉整條黃色 Message 常駐通知（原本「有 84 筆知識庫項目待確認」那條，對應
+        第 3 條），CSS（.kb-callout 系列）跟 markup 一起刪，數字已經在審閱狀態 donut
+        跟表格裡看得到，不需要額外一條 banner 重複講。
+     ③ 圖表卡矮一點、donut 大一點：第 18 條那版為了配合右上角圖例，donut 被迫縮小、
+        卡片被迫拉高（min-height:260px）才不重疊，兩邊一路互相牽制。Aimi 覺得划不
+        來，改回 kit .chart-donut-wrap 原生的並排寫法（donut 左、圖例右、垂直
+        置中，拿掉所有 position:absolute 相關 CSS），donut 順勢從 120px 放大到
+        150px，卡片高度也自然變矮，圖例天生不會擋到 donut，不用再量測、加高度去
+        閃它。圖例上下 gap 維持 --space-xxs(4px)。
+     ④ 「風險等級」也做成跟掃描工具/審閱狀態同款的 color-view-toggle，對齊
+        CLAUDE.md 的資安風險等級配色（緊急=critical紫、高=danger紅、中=warning橘、
+        低=success綠、資訊=info藍）。tone 種類變多（新增 critical/danger/info），
+        把原本每個 tone 要複製一次 primary/hover/active 三行的寫法收斂成
+        CSS 變數 --tone-color，新增 tone 只要一行對照表，不用再展開三行規則。
+  20.（2026-09-18 第五次修正）兩點：
+     ① 拿掉「知識庫總計」純數字卡——toolbar 已經有「共 949 筆項目」，Aimi 覺得
+        donut 卡旁邊再放一張只顯示同一個數字的卡是多餘的。統計區塊剩「審閱狀態」
+        「工具佔比」兩張，改用 .span-3（6 欄 grid 對分一排）。
+     ② 「工具佔比」donut 原本用 --chart-1（Acunetix）+ --chart-12（Nessus），兩個
+        色號隔太遠、不是照順序取色。改成 --chart-1 + --chart-2，跟圖表色票的排列
+        順序一致。
+  21.（2026-09-18 更新）統計卡區塊（.kb-stats）跟下面 view-toggle 篩選列之間的
+     margin-bottom 從 --space-xl(32px) 收緊成 --space-m(16px)，跟頁面其他區塊
+     間距收緊的方向一致。
+  22.（已被第 23 條取代）第六次修正把圖例放回右上角、用 min-height 硬撐出置中
+     空間，這條保留記錄改版歷程，實際排法看第 23 條。
+  23.（2026-09-18 第七次修正，最終版）圖例移出灰底、donut 真正置中的問題根源：
+     只要色標籤（圖例）跟 donut 塞在同一個容器裡，「置中」跟「留高度給圖例」就會
+     互相打架——不管圖例貼右上角、用 padding 推、還是加 min-height，本質上都是在
+     解同一個死結，Aimi 追問到底卡在哪，才發現是結構本身的問題，不是排列技巧的
+     問題。改成 Aimi 提供的 Figma 參考卡（node 8362:156625，裝置詳情頁「處理器：
+     名字」那張）的結構：色標籤是灰底下面獨立一排，置中、可換行，不在灰底裡面。
+     灰底變成只裝 donut，可以毫無顧忌地上下左右真置中，不用再算會不會擋到圖例。
+     色標籤沿用 kit 既有的 .chart-legend/.lg/.dot，只是排列方向從縱向清單改橫向
+     置中換行，字體/圓點大小維持 kit 規格，不跟著 Figma 參考稿的 10px/12px 走
+     （那是 CPU 圖表卡的規格，色標籤本身不是這次要照抄的對象，Aimi 有特別說明只
+     是拿來參考底色/間距/字體慣例，不是要我把圓餅圖卡做成一樣的內容）。
+     另外用 Aimi 指定的 Figma node 1233:13945（裝置詳情頁三張圖表卡的完整排版）
+     量出精確間距套用：卡片內距上/左右 8px、下 16px（覆寫 kit .chart-card 預設
+     的四邊統一 16px）；標題到圖表 8px；圖表到色標籤 8px；Tabs 底部到卡片區
+     16px（覆寫 kit .page-tabs 預設的 --space-xl）。全部用 getBoundingClientRect
+     量過，數字跟 Figma 完全對齊。
+  24.（2026-09-18 第八次修正，取代第 23 條色標籤排法）Aimi 澄清色標籤是特例，
+     指定另一份 Figma 參考（node 8626:99357，「作業系統更新率分佈」donut 卡）
+     才是色標籤真正要照的排列方式：絕對定位貼圖表區右上角（inset 8px）、縱向排列、
+     彼此間距 4px、整組 opacity 80%，色塊 12x12px rounded-2px，文字 8px/12px
+     （kit 沒有這個字級的 token，這次 Aimi 要求字體確實比照設計稿，直接寫死，不
+     套用 kit 的 caption2）。右下角比照設計稿加「確認率 91%」文字（用
+     --text-caption2，剛好等於設計稿要的 12px/18px regular，不用寫死）——這個
+     標籤只有「審閱狀態」卡有意義（已確認/待確認本來就是一個比率），「工具佔比」
+     是多工具分佔比、沒有對應的單一比率可以放，沒有加。
+     donut 改用 position:absolute + transform:translate(-50%,-50%) 真正置中，
+     不再靠 flex align-items 或 padding 湊，這樣 donut 的置中完全不受色標籤/
+     確認率標籤影響，兩者都是獨立的 absolute 元素，不會互搶版面空間，圖表區高度
+     可以直接指定（200px）不用再算會不會重疊——量過圓心到色標籤、確認率標籤
+     最近角的距離都大於半徑，確認沒有重疊。
+  25.（2026-09-18 更新）兩點小修正：
+     ① color-view-toggle 選中的按鈕 hover 時會冒出 kit.css .btn-primary:hover 的
+        實心底色（var(--btn-hover)），跟這組按鈕平常空心（白底＋色框）的樣式不
+        一致，看起來像突然跳出一塊色塊。補 .tone-toggle .btn.btn-primary:hover{
+        background:var(--bg-default)} 蓋掉，hover 時維持空心樣式。
+     ② 色標籤文字原本照 Figma 參考稿寫死 8px，Aimi 覺得太小、可能是那份設計稿
+        本身沒設計好，改成跟旁邊「確認率」文字統一用 --text-caption2(12px/18px)，
+        不再是獨立的 8px 小字。加大後有重新量測圓心到色標籤最近角的距離，確認
+        還是不會跟 donut 重疊。
+  26.（2026-09-21 更新，kit 已收進 aa18f1c／d8fef52 等 commit，清掉本頁重複補丁）
+     ① 統計卡兩張 donut 改吃 kit 的 .chart-donut-wrap.is-corner（第 20～25 條那套
+        圖例右上／比率右下／灰底只鋪圖表區的寫法已搬進 kit，本頁自己的 .kb-stats
+        CSS 全部拿掉）；卡片內距 8／8／16、page-tabs 下方 16px、toolbar 垂直置中、
+        篩選列→表格與表格→分頁 8px 留白也都是 kit 預設，本頁不再覆蓋。
+     ② .view-toggle 相鄰按鈕 border 重疊與選中 z-index：kit 已收進，本頁補丁拿掉。
+     ③ 仍是本頁自己的：.tone-toggle（依 tag 色上色的 view-toggle，尚未決定收不收進 kit）。
+  27.（2026-09-29 更新，取代第③點）Aimi 給 Figma 7650:37565，kit.css 的 .view-toggle
+     .btn.btn-primary 選中樣式改成空心（底色 --bg-hover、邊框/文字 --btn-hover、無陰影），
+     本頁「掃描工具」（neutral，沒有 tag 色）原本自己寫的白底＋--btn-default 藍框拿掉，
+     改吃 kit 這版；「審閱狀態」「風險等級」（有 tag 色）只留邊框/文字蓋色那條規則，
+     背景交給 kit 的 --bg-hover。.tone-toggle 目前只剩「有 tag 色時蓋色」這一件事，
+     其餘（空心底色、hover 不變實心）已經是 kit 的預設行為，不用重複寫。
+  28.（2026-09-29 更新，審閱狀態改回中性）「已確認」的 tag 色（success 綠）跟「風險等級」
+     裡「低」的顏色是同一個綠，兩組 view-toggle 又緊挨在一起，Aimi 指出快速掃過去容易
+     分不清這顆綠色是「審核完成」還是「風險低」。根源是系統的語意色只有嚴重度那五色＋灰，
+     沒有另一個「正向但非風險等級」的顏色可用。審閱狀態只有兩個選項、文字本身已經夠清楚
+     （不像嚴重度單字需要顏色輔助辨識），改回中性（跟掃描工具一樣，data-tone="neutral"）
+     比硬找一個新顏色更乾淨，問題直接消失。風險等級維持上色不動，這頁現在只有風險等級
+     一組有顏色，層次更清楚。
+  29.（2026-09-30 更新）掃描工具／審閱狀態／風險等級都拿掉「全部…」按鈕（Aimi 指出太長，
+     反正取消選取就等於全部，所有同款元件比照辦理）。改成沒有按鈕永遠選中：選中的按鈕
+     再點一次會取消選取，回到全部都沒選中＝全部。技術上加 `.deselectable` class，用
+     capture 階段的監聽搶在 kit.js 的 `.view-toggle` 監聽之前處理「已選中再點一次」的
+     取消動作，不影響一般 `.view-toggle`（一定要有一顆選中，例如依主機／依弱點那種）。
+     跟 scan-detail.html「校對狀態」、scan-jobs.html「檢測類型／狀態」同一套 JS，各頁
+     複製一份。
+  30.（2026-09-30 再更新）跟 Aimi 討論後決定分兩種邏輯：只有兩個互斥選項的（審閱狀態）
+     維持單選＋可取消（兩個選項都選＝都不選，沒有實際用途）；三個以上選項、彼此可以
+     組合看的（掃描工具、風險等級）改成真正多選——這其實呼應歷史決定：風險等級最早
+     就是 checkbox 多選（在 chip 下拉選單裡），後來為了讓使用者一眼看到才改成按鈕列
+     （見第 6 條），改按鈕的過程中順著單選做下去，但「同時看高＋緊急」這種需求一直
+     都在，單選反而是退步。技術上新增 `.multi-select` class，每顆按鈕只切換自己的
+     選中狀態，不影響旁邊按鈕，完全接管點擊（capture 階段 stopPropagation，不讓
+     kit.js 的單選邏輯跑）。跟 scan-jobs.html「狀態」同一套 JS，複製過來的。
+  31.（2026-10-30 更新，kit 同步）Sheet 最上方補 `.page-head`（標題＋說明），依 kit 新規範「內容區
+     要放頁面標題」，放在頁籤上方。右上按鈕不搬：匯出／匯入／新增項目只影響「風險項目」列表，
+     照 Aimi 決定維持在列表工具列右上方。標題頁面局部蓋成 24px（Aimi 拍板）；說明文字是我擬的，
+     待 Aimi 覆核。
+  32.（2026-10-30 更新，kit 第三批規範）並排按鈕只留給「同一份資料換呈現方式」，篩選用 chip，也
+      不再用獨立篩選列（.filter-rows／.filter-label）。「掃描工具」「風險等級」改多選型 chip、
+      「審閱狀態」改單選設定型 chip，三顆接在「每頁顯示」後面，跟搜尋框、分隔線、筆數同一排；
+      原本的 .view-toggle（含 tone 上色）全部拿掉，風險等級的色階在 chip 裡沒有對應，待 Aimi 覆核。
+  33.（2026-10-30 更新，Aimi 指示）關鍵字搜尋框加 kit 的 .is-compact（寬 160），讓「共 949 筆項目」
+      不再掉到下一行。
+  34.（2026-10-30 更新，Aimi 決定，取代第 32 條關於風險等級的部分）篩選要不要上色看情境：特別重要或
+      關鍵的用並排按鈕加顏色（.view-toggle.tone-toggle），次要的用 chip。「風險等級」是關鍵篩選，
+      回到並排按鈕加顏色（緊急紫、高紅、中橘、低綠、資訊藍），放在搜尋框後面、分隔線前面；
+      「掃描工具」「審閱狀態」維持 chip。kit f5edb8a 已放寬成「關鍵篩選可用上色的並排按鈕」，
+      這裡就是照那條做，不再是例外。
+  35.（2026-10-30 更新，kit 同步 b5ba787）多選型 chip 沒勾只顯示名稱，「掃描工具：全部」改成
+      「掃描工具」；單選的「審閱狀態」保留「全部」選項。
+  36.（2026-10-30 更新，Aimi 決定，取代第 35 條）「掃描工具」「審閱狀態」也改回並排按鈕（跟風險等級
+      一起，三組都是重要篩選）：掃描工具是 .tone-toggle.multi-select（data-tone="neutral"，不上色），
+      審閱狀態是 .tone-toggle.deselectable。三組接在搜尋框後面；1440 寬時搜尋框＋三組並排按鈕占滿
+      第一排，「每頁顯示」chip 與「共 N 筆」靠 kit 的換行機制掉到第二排（孤零零的分隔線由 kit.js
+      自動隱藏），更寬的螢幕會回到同一排。
+-->
+</head>
+<body data-page="kb">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <div class="page-head">
+      <div class="page-head-row">
+        <h1>弱點知識庫</h1>
+      </div>
+      <p class="page-desc">維護每個弱點的說明、影響與修補建議，校對時可直接載入使用</p>
+    </div>
+
+    <div class="page-tabs">
+      <button class="page-tab active" data-panel="items">風險項目</button>
+      <button class="page-tab" data-panel="taxonomy">分類系統</button>
+    </div>
+
+    <!-- ============ 風險項目 ============ -->
+    <section class="tab-panel" data-panel-id="items">
+
+      <div class="dash-grid kb-stats" style="margin-top:0; margin-bottom:var(--space-m)">
+        <div class="chart-card span-3">
+          <div class="chart-head"><h3>審閱狀態</h3></div>
+          <div class="chart-donut-wrap is-corner">
+            <div class="chart-donut" style="width:150px;height:150px;background:conic-gradient(var(--success-500) 0 91.1%, var(--gray-300) 91.1% 100%)"></div>
+            <div class="chart-legend">
+              <span class="lg"><span class="dot" style="background:var(--success-500)"></span>已確認 <span class="val">865</span></span>
+              <span class="lg"><span class="dot" style="background:var(--gray-300)"></span>待確認 <span class="val">84</span></span>
+            </div>
+            <div class="chart-rate">確認率 91%</div>
+          </div>
+        </div>
+        <div class="chart-card span-3">
+          <div class="chart-head"><h3>工具佔比</h3></div>
+          <div class="chart-donut-wrap is-corner">
+            <div class="chart-donut" style="width:150px;height:150px;background:conic-gradient(var(--chart-1) 0 29%, var(--chart-2) 29% 100%)"></div>
+            <div class="chart-legend">
+              <span class="lg"><span class="dot" style="background:var(--chart-1)"></span>Acunetix <span class="val">29%</span></span>
+              <span class="lg"><span class="dot" style="background:var(--chart-2)"></span>Nessus <span class="val">71%</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <!-- 關鍵字改成常駐搜尋框（主管要求要明顯的 input），不再用關鍵字 chip，也不另外出現「關鍵字「XSS」」已套用 chip，
+               值就在輸入框裡。原本 chip 下拉裡的說明文字放在 title -->
+          <div class="input input-sm toolbar-search is-compact" title="弱點名稱、原始識別碼、說明或修補建議">
+            <input type="text" value="XSS" placeholder="關鍵字" aria-label="關鍵字">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <div class="view-toggle tone-toggle multi-select" data-field="風險等級" role="group" aria-label="風險等級">
+            <button type="button" class="btn btn-sm btn-secondary" data-view="risk-critical" data-tone="critical">緊急</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="risk-danger" data-tone="danger">高</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="risk-warning" data-tone="warning">中</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="risk-success" data-tone="success">低</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="risk-info" data-tone="info">資訊</button>
+          </div>
+          <div class="view-toggle tone-toggle multi-select" data-field="掃描工具" role="group" aria-label="掃描工具">
+            <button type="button" class="btn btn-sm btn-secondary" data-view="tool-acunetix" data-tone="neutral">Acunetix</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="tool-hcl" data-tone="neutral">HCL AppScan</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="tool-nessus" data-tone="neutral">Nessus</button>
+          </div>
+          <div class="view-toggle tone-toggle deselectable" data-field="審閱狀態" role="group" aria-label="審閱狀態">
+            <button type="button" class="btn btn-sm btn-secondary" data-view="review-confirmed" data-tone="neutral">已確認</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-view="review-pending" data-tone="neutral">待確認</button>
+          </div>
+          <span class="toolbar-sep"></span>
+          <div class="filter-chips">
+            <span class="chip setting" data-field="每頁顯示">每頁顯示：10 筆 <i class="fa-solid fa-sort"></i>
+              <div class="chip-menu"><div class="current">10 筆</div><div>20 筆</div><div>50 筆</div><div>100 筆</div></div>
+            </span>
+          </div>
+          <span class="count-note">共 949 筆</span>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-download"></i>匯出 xlsx</button>
+          <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-upload"></i>匯入 xlsx</button>
+          <a class="btn btn-primary btn-sm" href="kb-editor.html"><i class="fa-solid fa-plus"></i>新增項目</a>
+        </div>
+      </div>
+
+      <div class="table cols-fixed">
+        <table>
+          <colgroup><col style="width:104px"><col style="width:240px"><col><col style="width:80px"><col style="width:96px"><col style="width:104px"></colgroup>
+          <thead>
+            <tr>
+              <th>掃描工具 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                <div class="col-menu"><div class="hint">欄位篩選</div>
+                  <label><input type="checkbox"><span>Acunetix</span></label>
+                  <label><input type="checkbox"><span>Nessus</span></label>
+                </div>
+              </th>
+              <th>原始識別碼 <i class="fa-solid fa-sort"></i></th>
+              <th>風險名稱 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                <div class="col-menu"><div class="hint">關鍵字篩選</div><input class="kw" type="text" placeholder="輸入風險名稱關鍵字"></div>
+              </th>
+              <th>CVSS <i class="fa-solid fa-sort"></i></th>
+              <th>風險等級 <i class="fa-solid fa-sort"></i></th>
+              <th>審閱狀態 <i class="fa-solid fa-sort"></i></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Acunetix</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">(Possible) Cross site script…</a></td>
+              <td>(Possible) Cross site scripting</td>
+              <td>—</td><td><span class="tag tag-info">資訊</span></td>
+              <td><span class="tag tag-success">已確認</span></td>
+            </tr>
+            <tr>
+              <td>Nessus</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">46180</a></td>
+              <td>Additional DNS Hostnames</td>
+              <td>—</td><td><span class="tag tag-info">資訊</span></td>
+              <td><span class="tag tag-gray">待確認</span></td>
+            </tr>
+            <tr>
+              <td>Nessus</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">55786</a></td>
+              <td>Oracle Database Unsupported Version Detection</td>
+              <td>10.0</td><td><span class="tag tag-critical">緊急</span></td>
+              <td><span class="tag tag-gray">待確認</span></td>
+            </tr>
+            <tr>
+              <td>Acunetix</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">ASP.NET debugging enabl…</a></td>
+              <td>ASP.NET debugging enabled</td>
+              <td>—</td><td><span class="tag tag-success">低</span></td>
+              <td><span class="tag tag-success">已確認</span></td>
+            </tr>
+            <tr>
+              <td>Acunetix</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">AngularJS Improper Input …</a></td>
+              <td>AngularJS Improper Input Validation Vulnerability</td>
+              <td>—</td><td><span class="tag tag-danger">高</span></td>
+              <td><span class="tag tag-success">已確認</span></td>
+            </tr>
+            <tr>
+              <td>Nessus</td>
+              <td><a class="row-action detail" href="kb-editor.html" style="font-weight:var(--weight-regular)">12065</a></td>
+              <td>ASN.1 Multiple Integer Overflows (SMTP check)</td>
+              <td>—</td><td><span class="tag tag-info">資訊</span></td>
+              <td><span class="tag tag-success">已確認</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="page current">1</button><button class="page">2</button><button class="page">3</button>
+        <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+        <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+        <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+      </div>
+    </section>
+
+    <!-- ============ 分類系統（待設計稿） ============ -->
+    <section class="tab-panel" data-panel-id="taxonomy" hidden>
+      <div class="wip">
+        <i class="fa-solid fa-sitemap"></i>
+        <p>「分類系統」分頁待設計稿確認後補上</p>
+      </div>
+    </section>
+
+  </div><!-- /sheet -->
+</main>
+
+<script src="scan-shell.js"></script>
+<script src="../assets/kit.js"></script>
+</body>
+</html>

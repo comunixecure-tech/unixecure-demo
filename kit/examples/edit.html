@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAVEN｜新增告警規則</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+</head>
+<body data-page="edit">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <div class="page-head">
+      <div class="page-head-row"><h1>新增告警規則</h1></div>
+      <p class="page-desc">設定監控對象、觸發條件與通知管道，儲存後規則立即生效</p>
+    </div>
+    <p class="required-note"><span class="req">*</span> 為必填欄位</p>
+
+    <form class="form-ll">
+
+      <!-- ===== 基本資訊 ===== -->
+      <div class="section">
+        <div class="section-title">基本資訊</div>
+
+        <div class="ff">
+          <label>規則名稱 <span class="req">*</span></label>
+          <div class="ff-control">
+            <input class="input" placeholder="輸入規則名稱">
+            <p class="help">顯示在告警清單與通知標題，建議用「對象 + 事件」描述</p>
+          </div>
+        </div>
+
+        <div class="ff mid">
+          <label>規則 ID</label>
+          <div class="ff-control">
+            <span class="auto-value">將於新增時由系統自動產生</span>
+          </div>
+        </div>
+
+        <div class="ff">
+          <label>監控對象 <span class="req">*</span></label>
+          <div class="ff-control">
+            <div class="selector"><span>全部資產</span><i class="fa-solid fa-angle-down"></i></div>
+          </div>
+        </div>
+
+        <div class="ff">
+          <label>嚴重程度 <span class="req">*</span></label>
+          <div class="ff-control">
+            <div class="selector"><span>請選擇</span><i class="fa-solid fa-angle-down"></i></div>
+          </div>
+        </div>
+
+        <div class="ff">
+          <label>說明</label>
+          <div class="ff-control">
+            <textarea class="input" placeholder="這條規則的用途、判斷邏輯、處理原則"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 觸發條件 ===== -->
+      <div class="section">
+        <div class="section-title">觸發條件</div>
+
+        <div class="ff">
+          <label>觸發邏輯</label>
+          <div class="ff-control">
+            <div class="choice-group">
+              <label class="radio-row"><input type="radio" name="logic" checked> 全部條件符合</label>
+              <label class="radio-row"><input type="radio" name="logic"> 任一條件符合</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="ff wide">
+          <label>條件清單 <span class="req">*</span></label>
+          <div class="ff-control">
+            <div style="margin-bottom:var(--space-xs)">
+              <button type="button" class="btn btn-secondary"><i class="fa-solid fa-plus"></i>新增條件</button>
+            </div>
+            <div class="table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>參數</th><th>資料來源</th><th>運算子</th><th>門檻</th>
+                    <th style="text-align:right">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>含 KEV 標記</td><td>CISA KEV</td><td>=</td><td>是</td>
+                    <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action">編輯</span><span class="row-action danger">刪除</span></div></td>
+                  </tr>
+                  <tr>
+                    <td>EPSS 分數</td><td>FIRST EPSS</td><td>≥</td><td>88%</td>
+                    <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action">編輯</span><span class="row-action danger">刪除</span></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 通知設定 ===== -->
+      <div class="section">
+        <div class="section-title">通知設定</div>
+
+        <div class="ff">
+          <label>通知管道 <span class="req">*</span></label>
+          <div class="ff-control">
+            <div class="choice-group">
+              <label class="checkbox-row"><input type="checkbox" checked> Email</label>
+              <label class="checkbox-row"><input type="checkbox" checked> Slack</label>
+              <label class="checkbox-row"><input type="checkbox"> 簡訊</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="ff">
+          <label>通知對象</label>
+          <div class="ff-control">
+            <div class="tag-field">
+              <span class="tag tag-gray">資安維運群組 <i class="fa-solid fa-circle-xmark"></i></span>
+              <span class="tag tag-gray">王小明 Peter <i class="fa-solid fa-circle-xmark"></i></span>
+              <input placeholder="加入對象">
+              <i class="fa-solid fa-angle-down"></i>
+            </div>
+            <p class="help">未指定時，通知會送到該監控對象的預設負責人</p>
+          </div>
+        </div>
+
+        <div class="ff">
+          <label>靜音時段</label>
+          <div class="ff-control">
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="track"></span>
+              <span class="switch-label">啟用</span>
+            </label>
+            <div class="row" style="margin-top:var(--space-xs)">
+              <div class="selector" style="min-width:120px"><span>00:00</span><i class="fa-solid fa-angle-down"></i></div>
+              <span>至</span>
+              <div class="selector" style="min-width:120px"><span>06:00</span><i class="fa-solid fa-angle-down"></i></div>
+            </div>
+            <p class="help">靜音時段內僅降級為每日彙整，不即時通知</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 執行結果預估（按鈕觸發展開） ===== -->
+      <div class="section">
+        <div class="section-title">執行結果預估</div>
+        <div class="ff wide">
+          <label></label>
+          <div class="ff-control">
+            <button type="button" class="btn btn-secondary" data-reveal="#estimate"><i class="fa-solid fa-flask"></i>執行結果預估</button>
+            <p class="help">以目前條件套用到現有資產，估算會觸發的數量（不會實際發送通知）</p>
+
+            <div id="estimate" hidden style="margin-top:var(--space-m)">
+              <div class="kpi-row" style="margin-bottom:var(--space-m)">
+                <div class="kpi">
+                  <span class="kpi-label">符合條件資產</span>
+                  <span class="kpi-num is-danger">12</span>
+                  <span class="kpi-sub">佔全部 1%</span>
+                </div>
+                <div class="kpi">
+                  <span class="kpi-label">近 30 天會觸發</span>
+                  <span class="kpi-num">7 次</span>
+                  <span class="kpi-sub">回放歷史資料</span>
+                </div>
+                <div class="kpi">
+                  <span class="kpi-label">無法判斷</span>
+                  <span class="kpi-num is-warning">3</span>
+                  <span class="kpi-sub">缺 EPSS 分數</span>
+                </div>
+              </div>
+              <div class="table">
+                <table>
+                  <thead>
+                    <tr><th>資產</th><th>命中條件</th><th>最近一次會觸發</th><th>判定</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>web-prod-07</td><td>KEV + EPSS 92%</td><td>2026/09/06</td><td><span class="tag tag-danger">會觸發</span></td></tr>
+                    <tr><td>db-core-02</td><td>KEV + EPSS 89%</td><td>2026/09/04</td><td><span class="tag tag-danger">會觸發</span></td></tr>
+                    <tr><td>vpn-gw-01</td><td>KEV 標記</td><td>—</td><td><span class="tag tag-warning">缺 EPSS</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <button type="button" class="page current">1</button>
+                <button type="button" class="page">2</button>
+                <button type="button" class="page"><i class="fa-solid fa-angle-right"></i></button>
+                <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <div class="sheet-footer">
+      <a class="btn btn-secondary" href="list.html"><i class="fa-solid fa-arrow-left"></i>返回列表</a>
+      <div class="right">
+        <button class="btn btn-secondary">儲存為草稿</button>
+        <button class="btn btn-primary">新增規則</button>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+</main>
+
+<script src="assets/shell.js"></script>
+<script src="assets/kit.js"></script>
+</body>
+</html>

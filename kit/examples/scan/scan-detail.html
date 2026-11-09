@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VulnEye｜掃描作業詳情</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  /* 本頁專屬（只用 var(--*)） */
+  .page-title { font:var(--weight-semibold) var(--text-subheading); margin-bottom:var(--space-m); }
+  /* 範圍主機／弱點項目／嚴重度分佈／校對進度：改用 kit 既有的 .dash-grid + .span-3
+     （CLAUDE.md 儀表板規範的「3+3」排法），四張 chart-card 背景統一 --bg-hover */
+  .scope-cards .chart-card { background:var(--bg-hover); }
+  /* 校對進度卡標題用 kit 的 .stat-toggle；放進 .chart-head 的字級 kit 已處理（commit 3fd809d）。 */
+  /* 篩選 chip＋筆數同一排用 kit 的 .bulk-lead（commit 3fd809d）。 */
+  .review-toolbar { display:flex; align-items:center; gap:var(--space-m); flex-wrap:wrap; margin-bottom:var(--space-s); }
+  /* 篩選列／表格／分頁的 8px 留白、.subtable（灰底不被蓋、縮排放第一欄儲存格）都是 kit 預設，本頁不再覆蓋。 */
+  /* 批次操作動作列（.bulk-bar）、動作選單按鈕（.bulk-mark）：kit 已收進正式版
+     （commit 01ff01a），本頁不再覆蓋，見頁面註解第 53 條。 */
+  /* 校對 modal 雙欄 */
+  /* 雙欄＋分隔線用 kit 的 .col-split（commit 3fd809d CLAUDE.md：modal 內分欄直接用它）；
+     本頁只留欄標題字級（--text-button 20px）。 */
+  .review-grid h4 { font:var(--weight-semibold) var(--text-button); margin-bottom:var(--space-xs); display:flex; align-items:center; gap:var(--space-xs); }
+  /* 校對 modal 右側知識庫內容：三格從一開始就是一般可編輯的 textarea.input（不做 disabled 外觀）；
+     內容跟原版不一樣時，上方灰字列改成處理方式選項列。 */
+  textarea.kb-field { display:block; width:100%; height:auto; min-height:0; resize:none; }
+  .kb-mode { display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-xs); margin-bottom:var(--space-xs);
+             font:var(--weight-regular) var(--text-caption2); color:var(--text-disable); }
+  /* 標記成誤報／忽略：這筆不進報告，整個右欄停用（不是藏起來，切回「列入」內容還在）。
+     停用樣式吃 kit 的 .input:disabled／.selector.is-disabled（commit 3fd809d），這裡只留說明文字。 */
+  .kb-off-note { margin-bottom:var(--space-s); font:var(--weight-regular) var(--text-caption); color:var(--text-color); }
+  .kb-mode-text { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-xs); }
+  .kb-mode .fa-solid { font-size:12px; }
+  .kb-mode .is-pending { color:var(--text-color); }
+  .kb-mode .checkbox-row { font:var(--weight-regular) var(--text-caption2); color:var(--text-color); }
+  /* 本次報告 pipeline */
+  .rp-step { display:flex; align-items:center; gap:var(--space-xs); font:var(--weight-semibold) var(--text-subheading); margin-bottom:var(--space-s); }
+  .dl-row { display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-bottom:var(--space-xs); }
+  /* 送出客戶：跟「刪除」放同一個 sheet-footer，但只在「本次報告」分頁才顯示，
+     借用 kit 既有的 .tab-panel[data-panel-id] 機制（跟 page-tab 共用同一支 click handler），
+     kit.css 的 [hidden]{display:none!important} 保證切到弱點校對清單分頁時確實藏起來。 */
+  .submit-client, .compare-action { display:flex; align-items:center; gap:var(--space-xs); }
+  /* 與前次比對分頁（從 scan-diff.html 併入）。.empty-state 已收進 kit 正式版
+     （commit 01ff01a），本頁不再覆蓋，見頁面註解第 53 條。 */
+  .diff-baseline { display:flex; align-items:center; gap:var(--space-s); margin-bottom:var(--space-m); font:var(--weight-regular) var(--text-caption); }
+  /* 2026-10-03：「比較基準」這顆也是欄位小標，只是沒套 kit 的 .field，自己長出一個沒跟上
+     統一規格的漏網之魚——補 Semibold，跟 .field > label 一致 */
+  .diff-baseline > label { font-weight: var(--weight-semibold); color: var(--text-color); }
+</style>
+<!--
+  超規範判斷（給 Aimi 覆核）：
+  1. examples/scan/ 自帶薄殼（scan-shell.js）。
+  2. 主管版把「弱點校對」和「本次報告」左右並排、各帶一條 tab bar。這裡收成
+     一層 page-tabs（弱點校對 / 本次報告），全寬切換。
+  3. 「本次報告」的 ①②③④ 流程：stepper 只當頂部進度指示（kit 規範用法），
+     步驟內容用 Section 分段、標題掛 ①②③④ 與狀態 tag。
+  4. 校對走 modal（一般 modal 少見左右雙欄，弱點校對簡化後寬度可控，用 modal-wide）。
+  5. 主管版的自由卡片列、inline 大按鈕 → 表格 + 純文字連結 + tag。
+  6. 校對 modal 的「可用變數」：這裡正文是唯讀預覽（校對不改內容），沒有東西可插入，
+     所以不是 kit 的 .token-list（那是給 kb-editor 正文編輯用的），改成 def-list.cols-2
+     當「這筆弱點的代號→實際值」對照表。
+  7. 標題列（對齊 Figma 22093-196556）：拿掉同排的 tag／刪除鈕，標題縮到 --text-subheading，
+     下面改「基本資料」def-list（檢測類型／完成時間／原始報告檔）。刪除移到 sheet-footer。
+     標題原本寫「主機弱掃・第 1 次」，Aimi 指出「第 1 次」這種序號可能是我 demo 時腦補、
+     不確定後端真的有這個獨立欄位，改把它併進「檢測類型」那格（Tag + 文字），標題只留
+     「主機弱掃」。「檢測類型」欄也比照掃描作業列表頁改用 Tag（初掃＝tag-info），不是
+     純文字。「狀態：已完成」整列拿掉——這頁能被打開就代表掃描已完成（列表頁上掃描中／
+     解析失敗的列本來就不能點進來），寫在這裡等於恆真、沒有資訊量，Aimi 也覺得看不懂
+     「完成了什麼」。「弱點分佈」「報告狀態」這類欄位列表頁雖然有，但下面已經有嚴重度/
+     校對進度圖表卡跟「本次報告」分頁在講，這裡不重複列。
+  8. 原始報告檔按鈕列（對齊 Figma 7202-87387）：不用 Card／表格資訊，格式跟 sha256 這種
+     細節先不顯示。標籤併進上面的 def-list 當第 4 個 dt/dd（原本另外用 .section-sub
+     自成一排，字重顏色跟其他標籤對不齊，Aimi 抓到後統一成同一個 def-list）。
+  9. 「檢測範圍與概況」跟「弱點清單」合併成一個 section：主機可能有 300+ 台，母層是主機
+     （欄位跟弱點不同），子層是該主機的弱點，用 subrow + 獨立 subtable 展開收合
+     （kit 子母表格既有規則），不用再另開一張概況表格 + 跳去下面篩選。「依主機」變預設
+     視圖；「依弱點」留著當跨主機攤平看（依嚴重度/處置排序找特定弱點）。
+  10. page-tabs（弱點校對／本次報告）拿掉內嵌的「待補 84」「待送出」tag，只留純文字。
+  11. 「範圍主機／弱點項目／嚴重度分佈」改成 chart-card（兩張數字 + 一張圓餅），
+      背景統一 --bg-hover，跟其他統計卡一致。後補第 4 張「校對進度」圓餅（已校對／
+      待校對），下面原本純文字的「待補 84　已校對 0/96」count-summary 併進這張卡
+      （圓餅比例＋待校對數，「待補」數量另用一行說明文字標示），故整個 count-summary
+      移除。（2026-09-14 更新）四張卡原本用自己寫的 flex（.scope-cards，數字卡固定
+      180px＋圓餅卡 flex:1），Aimi 覺得排列不自然，改用 kit 既有的 .dash-grid + .span-3
+      （CLAUDE.md 儀表板規範的「3+3」排法），四卡等寬分兩排，拿掉自己寫的 flex CSS。
+  12.（2026-09-11 更新）.subtable 縮排後子標頭灰底斷開這個 kit gap，回報後 kit 那邊已經
+      在 kit.css 修掉了（::before 通版鋪滿），本頁原本補的墊底 CSS 已拿掉、改吃 kit 正式修法。
+  13. 依主機表格：母列的高/中/低/資訊數量改用對應狀態色的 tag（0 或 — 不上色）；
+      子表格欄序改成「弱點名稱／發生位置／嚴重度／校對狀態／操作」；拿掉「顯示 X/Y 筆」
+      的省略提示。嚴重度 filter chip 改多選 checkbox、預設只勾緊急／高，避免一展開
+      子表就跳出過多筆數；「只看待補」改名「只有待校對」，用詞跟校對狀態一致。
+      （2026-09-11 更新）多選 chip 的 checkbox 樣式＋勾選後自動彙總 chip 文字，
+      已回寫進 kit（chip-menu label + change 監聽），本頁拿掉自己寫的 CSS。
+  14. 「依主機／依弱點」原本用 kit 的 .card-tab 底線切換，Aimi 的設計稿裡沒有這層
+      元件；對齊 RAVEN 16513-90213（CVSS/EPSS 二選一連體按鈕），改成兩顆 .btn-sm
+      貼齊（.view-toggle，選中 btn-primary、未選 btn-secondary，只留外側圓角）。
+      （2026-09-11 更新）.view-toggle 已回寫進 kit.css/kit.js，變成正式元件，本頁
+      拿掉自己寫的 CSS 跟切換 script，改吃 kit 版本（面板屬性從 data-view-id 改成
+      kit 規定的 data-view-panel）。
+  15. 依主機表格的展開／收合箭頭原本自己開一欄 .cb-cell（跟 kit 的多選 checkbox 共用
+      樣式），但 kit.css 的 .expander 本身就設計成塞在名稱欄位內、跟文字同一格（margin-
+      right 是給文字用的緊貼間距，不是給獨立一欄用的）。對齊元件庫 6638-16939，改成
+      箭頭跟主機 IP 同一個 <td>，拿掉那一整欄，欄數從 10 變 9（子表格 colspan 一起改）。
+  16.（2026-09-14 更新）kit gap（回報 Aimi）：kit.css 幫 .subtable > table 補
+      position:relative 時，忘了那顆 table 自己還留著不透明的 background:var(--bg-default)，
+      跟 ::before 同層時後面的 table 會蓋掉前面的灰底，子標頭整條被蓋成白色，只剩縮排
+      那一小塊露出灰。本頁改成 table 透明、白底改放到 td 上，讓子標頭灰能整條透出來；
+      另外對齊元件庫 6638-21795，子表格區塊補一條左側分隔線（border-left），沒有動
+      assets/kit.css，建議回寫。
+  17.（已被第 34 條取代）「依主機／依弱點」view-toggle 曾經放在 filter-chips 最右邊
+      （margin-left:auto）。
+  18.（2026-09-14 更新）依主機表格：拿掉主機旁邊的「重災戶」tag（demo 時自己加的，
+      沒有實際資料支撐，不該無中生有）；「用途 / OS」改名「作業系統」，欄位內容也拿掉
+      「AP・」「MAIL・」這類用途前綴，只留系統版本；「發生位置」欄搬到「緊急」左邊
+      （原本在最後一欄）。
+  19.（2026-09-14 更新）「本次報告」第 4 步「送出客戶」原本是分頁裡自己一個 section
+      （文案 + disabled 按鈕 + 說明文字），現在整塊拿掉、只留 stepper 上的第 4 步指示。
+      按鈕搬到 sheet-footer，跟「刪除」同一排、放在右邊，disable 原因「需先上傳最終版
+      才可送出」補在按鈕左邊。這顆按鈕借用 kit 既有的 .tab-panel[data-panel-id="report"]
+      機制（跟 page-tab 共用同一支 click handler），只有切到「本次報告」分頁才會顯示，
+      切回「弱點校對清單」自動隱藏。
+  20.（2026-09-14 更新）「依弱點」表格的「嚴重度」欄位標題被截斷成「嚴.」——欄寬只有
+      64px，裝不下「嚴重度」三個字加 sort／filter 兩個 icon（跟稍早 scan-jobs.html
+      「檢測類型」被截斷是同一種問題）。欄寬加到 108px。
+  21.（2026-09-14 更新）「依弱點」表格的「影響範圍」欄拆成「影響裝置數」「發生位置」
+      兩個純數字欄（原本擠在一起寫「1 台・1 個發生位置」）。
+  22.（2026-09-14 更新）CLAUDE.md 明訂風險等級對應：嚴重＝critical、高＝danger、
+      中＝warning、低＝success、**資訊＝info（藍）**——但頁面裡「資訊」的 tag／圖表色
+      一路都誤用灰色（tag-gray／--gray-400），這裡全部改成 tag-info／--info-500，
+      包含嚴重度分佈圓餅、依主機表格的資訊欄數量 tag、依主機子表格與依弱點表格的
+      嚴重度 tag。「校對進度」圓餅的「待校對」維持 --gray-300（比照 dashboard.html
+      「未評」的用法，屬於中性／待處理狀態，不是嚴重度，不用改）。
+  23.（2026-09-14 更新）校對 modal 的「本次檢測結果」「知識庫條目」兩個 h4 標題拿掉
+      前面的 icon（放大鏡／書），Aimi 覺得多餘。
+  24.（2026-09-14 更新，第二次修正）kit gap（回報 Aimi）：kit.css 的 .subtable
+      padding-left:40px 讓子欄位文字比母欄位「純文字」多縮排太多。第一次改成
+      padding-left:0（對齊母欄位儲存格邊界）還是不對——Aimi 澄清她要的是子欄位純
+      文字對齊母欄位「純文字」，箭頭寬度不算在對齊基準內，箭頭是疊加在母欄位文字
+      前面的額外元素。實測母欄位文字起點比儲存格邊界多了 20px（展開箭頭寬+間距），
+      改成 padding-left:20px，兩邊文字起點現在完全對齊（同一個 x 座標）。
+  25.（已被下一條取代）曾經新增獨立的「處置」欄，跟「校對狀態」分開。
+  26.（2026-09-14 更新，取代第 25 條）Aimi 指出「校對狀態」＋「處置」分兩欄要多一次
+      操作才能完整標記，其實每次校對完成、沒特別標記誤報／忽略的話，處置就是「列入」，
+      沒必要拆兩欄。改成合併成一個「狀態」欄，四選一：已校對（＝列入）／誤報／忽略／
+      未校對（原「待校對」改名）。子表格跟依弱點表格的欄位、filter chip（原本「校對
+      進度」＋「處置」兩顆 chip 合併成一顆「狀態」chip，「排除」這個選項拿掉——沒被
+      納入新的四選一）、「只有待校對」checkbox 改名「只有未校對」都跟著改。校對 modal
+      footer 原本「標記誤報／標記忽略」跟「取消／標示已校對」分兩群（space-between），
+      Aimi 說標記按鈕要放 primary 按鈕左邊，改成一排：取消／標記誤報／標記忽略／
+      標示已校對（primary），這三顆本質上是同一個「狀態」欄位的三選一寫入動作。
+  27.（2026-09-14 更新）校對 modal 右側「知識庫條目」整理：語系 tab 跟版本選單原本
+      擠在同一排，改成分兩行（語系一排、版本選單一排），版本選單拉滿寬度；「維護弱點
+      資訊」改文案「編輯知識庫」；「校對要填的欄位」標題旁的灰字說明拿掉；底下兩個
+      欄位（資料庫名稱／資料庫版本）label 旁的灰字提示改放進 input/textarea 的
+      placeholder；「可用變數」中間分隔線見上方 kit gap 註解跟頁尾 script（JS 量測畫線，
+      2026-09-14 再更新：負 margin/padding 的做法後來發現會跟 grid row track 高度互相
+      影響、不同頁面要補的數字不一樣不好維護，改成 JS 量測＋畫一條絕對定位的線）。
+      kb-editor.html 的可用變數也套用同一套 JS 修法。
+  28.（2026-09-14 更新）篩選列跟表格、表格跟分頁之間留白 Aimi 覺得太大——kit.css
+     這兩個間距都用 --space-m(16px)，改成 --space-xs(8px)（依主機／依弱點兩個
+     view 各自的 pagination 都改了）。
+  29.（2026-09-18 更新，部分取代第 26 條）Aimi 明確指出：校對 modal 內的「誤報／
+     忽略」是獨立於「校對狀態」的另一種狀態，不該合併成一欄——這跟第 26 條「四選一
+     合併」的方向相反，是 Aimi 重新確認過的決策，不是我自己判斷推翻。子表格＋依弱點
+     表格的「狀態」欄拆回兩欄：「校對狀態」（已校對／未校對）＋「誤報／忽略」（誤報／
+     忽略／—）；filter chip 原本合併的「狀態」也拆回「校對狀態」＋「誤報／忽略」兩顆。
+     校對 modal footer 的按鈕排列（取消／標記誤報／標記忽略／標示已校對）維持原樣，
+     Aimi 這次沒有要求改，三顆按鈕分別寫入兩個獨立欄位（標記誤報／忽略→誤報／忽略
+     欄；標示已校對→校對狀態欄）。示範資料：原本「誤報」那筆（Common Platform
+     Enumeration）改成校對狀態＝已校對＋誤報／忽略＝誤報，因為標記誤報本身就是一種
+     校對完成的判斷。
+  30.（2026-09-18 更新）配色調整：「校對狀態」的「未校對」從 tag-warning（橘）改
+     tag-gray（灰）——未校對是中性的待處理狀態，不是警告；「誤報／忽略」的「誤報」
+     從 tag-gray 改 tag-danger（紅），「忽略」維持 tag-gray（灰），呼應「誤報」是
+     比較需要留意的判斷結果、「忽略」是單純不列入的中性結果。
+  31.（2026-09-18 更新）Aimi 明確要求的新欄位：依主機子表格＋依弱點表格都加「內容
+     來源」，三選一：知識庫／原始報告／自己填，標示這筆弱點目前顯示的說明/修補內容
+     是從哪來的。示範資料：常見弱點（Oracle/SSL 憑證等）標知識庫；HSTS 這種比較新的
+     項目標原始報告（還沒建 KB 條目）；已標記誤報那筆（Common Platform Enumeration）
+     標自己填，示範審閱人員自己動手改過內容的情境。純顯示用 tag-gray，不特別上色，
+     跟嚴重度/狀態這類需要一眼判斷輕重的欄位區隔開。
+  32.（2026-09-18 更新）校對 modal 右側「知識庫條目」的版本選單原本只顯示「V3
+     （預設）」純文字，Aimi 指出跟 kb-editor.html 版本簡稱改多選標籤後應該要一致，
+     選版本時也要看得到該版本的簡稱標籤。改成「V3」純文字＋「預設」＋各簡稱標籤
+     （這裡示範資料對應 kb-editor.html 繁中 V3 的「主管推薦版」「已核可」兩個標籤）。
+     目前示範資料是寫死的，還沒真的接 kb-editor.html 那份資料源，之後兩邊要共用同一
+     份版本/簡稱資料時要注意同步。
+  33.（2026-09-21 更新）Aimi 要求把「與前次比對」併進掃描結果頁，新增第三個 page-tab
+     （弱點校對清單／本次報告／與前次比對），內容從 scan-diff.html 搬過來：比較基準
+     選單、三張 KPI、新增／已修復／仍存在三組表格。
+     ① 三組表格的切換原本是 scan-diff 的第二排 .page-tab（第一版改成 .card-tab，
+        已被第 35 條取代）。kit.js 的 tab／view-toggle 監聽都會把同一個 .sheet 底下
+        所有 .tab-panel／[data-view-panel] 一起收合，這頁已經各有一組在用，子面板不能
+        共用同一套，所以子面板用 data-diff／data-diff-panel 自己切（頁尾 script；已被第 44 條取代，
+        改吃 kit 的 data-view-group）。
+        這是 kit 的缺口：巢狀／並存的 tab、view-toggle 沒有支援，建議 kit.js 的 scope
+        改成「最近的一層群組」。
+     ② 拿掉 scan-diff 每個子分頁上方的灰字說明（KPI 卡的 kpi-sub 已經講過同樣的事）。
+     ③ 頁尾補「完成複測驗證」按鈕，借用「送出客戶」同一套 .tab-panel[data-panel-id]
+        機制，只在這個分頁顯示。
+     ④ 「待複測人員確認」tag 從 tag-warning 改 tag-gray，跟未校對／待確認同一套
+        「中性待處理＝灰」的用法。欄名「嚴重程度」統一成本頁的「嚴重度」。
+     ⑤ 掃描作業列表「比對初測」連結改指到 scan-detail.html#compare（頁尾 script 讀
+        hash 開啟對應分頁）。scan-diff.html 已刪除（2026-09-21，Aimi 確認），scan-shell.js 導覽的
+        scan-diff 項目也一併拿掉。
+     ⑥ 示範資料矛盾：本頁 def-list 是「初掃 第 1 次」，比較基準卻也是「第 1 次」，
+        真實情境應該是複掃頁才有這個分頁（初掃沒有前次可比，要顯示空狀態），先沿用
+        scan-diff 的資料，等 Aimi 決定初掃要不要隱藏這個 tab。
+  34.（2026-09-21 更新，取代第 17 條）「依主機／依弱點」view-toggle 從篩選列最右邊
+     移到列表區塊最上面，自己一排、靠左，跟 kb-list.html 的 view-toggle 排法一致
+     （view-toggle 一排、篩選列一排、再接表格）。
+  35.（2026-09-21 更新）「與前次比對」的切換從 .card-tab 改成跟本頁「依主機／依弱點」
+     同款的 view-toggle 按鈕組，選項改成「全部弱點｜新增｜已修復｜仍存在」，拿掉
+     原本標題旁邊的數字 tag（數量 KPI 卡已經有了）。新增「全部弱點」這一組（預設
+     選中），三種狀態合併成一張表，多一欄「變化」用 tag 標示（已修復＝綠、仍存在＝
+     紅；新增目前 0 筆，示範資料沒有這種列，之後要補顏色再定），示範資料是把
+     已修復、仍存在兩組表格的列合併、依嚴重度排序。按鈕用一般 view-toggle 的藍色
+     選中樣式，沒有做成 kb-list.html 那種依 tag 色上色的版本，需要的話再說。
+  36.（2026-09-21 更新，取代第 32 條的靜態版本選單）校對 modal 右側知識庫內容改成
+     可選「要不要載入知識庫版本」：
+     ① 版本選單改成真的下拉（V3／V2／V1／不載入版本（自己填寫）），選項只放版本簡稱
+        tag，不放「預設」tag（預設版本本來就是直接載入顯示在上面）；收合時顯示的目前
+        版本也一樣。
+     ② 載入版本後三個內容欄位（弱點說明／弱點影響／建議修補方式）從一開始就是一般可編輯
+        的白底欄位，點進去直接打字，不跳彈窗（第一版做成灰底唯讀外觀，Aimi 說既然點
+        欄位就能改，一開始就不該長得像 disabled，已拿掉）。「校對要填的欄位」
+        （資料庫名稱／版本）是這筆弱點自己的變數值，不屬於知識庫內容，一直是一般欄位。
+     ③ 內容一跟原版不一樣，欄位上方灰字列（原本寫「內容為 V3 知識庫原文，修改後需選擇
+        處理方式」）就變成處理方式選項列：
+        提示文字＋一組 view-toggle 樣式的按鈕「恢復預設｜覆蓋現有版本｜另存新版本」。
+        沒選之前「標示已校對」按鈕 disabled（Aimi 確認這樣處理合理）；選覆蓋／另存後
+        按鈕解鎖，提示文字改成「已選擇：…」；選恢復預設則內容變回原版、選項列消失；
+        自己把字改回跟原版一樣，選項列也會自動消失、之前的選擇作廢。
+        （原本第一版是「先點欄位跳彈窗選處理方式、再改內容」，Aimi 指出順序跟實際使用
+        相反——通常是先改內容才決定怎麼處理——所以改成現在的做法，彈窗拿掉。）
+     ④ 選「另存新版本」後，選單顯示改成「載入版本：新版本」（不帶簡稱 tag），三個欄位標題
+        （V3）也變成（新版本）；改選覆蓋或恢復預設會回到 V3 原本的顯示。
+     ⑤ 選「不載入版本」（跟「空白版」是同一件事，Aimi 已同意）：三個欄位清空、可直接填，
+        沒有處理方式選項列、不 disabled 按鈕；灰字列多一個「同時另存為知識庫新版本」
+        checkbox（她說空白版可「編輯、或另存新版」，這是我的解讀）。
+     ⑥ 示範用：只有 V3、V2、V1 三份寫死的文字，切版本會換內容並重置選擇；「標示已校對」
+        目前只是關閉視窗，沒有真的依選擇寫入知識庫或改列表的「內容來源」欄（覆蓋／另存／
+        自己填理論上都應該讓內容來源變成「自己填」，或另存新版本後變成「知識庫」，待
+        Aimi 決定）。
+     ⑦ 「恢復預設」現在有東西可恢復了（改過字才出現）。Aimi 要求「恢復預設」「覆蓋現有
+        版本」都要防呆：點了先跳確認小彈窗（疊在校對 modal 上，沿用 delScan 的小變體，
+        標題紅字＋btn-danger 確認鈕，取消鈕在左）。恢復預設＝捨棄已改的字；覆蓋＝改到
+        共用的知識庫版本。兩個都用破壞性紅色；已經選著覆蓋時再點一次覆蓋不重問；
+        另存新版本不動到既有資料所以不需要確認。防呆在「選」的當下跳，不是等按「標示
+        已校對」才問。
+  37.（2026-09-21 更新）依主機表格的「弱點數」欄從最右邊移到「主機」右邊（第二欄），
+     Aimi 說這樣展開子表格時可以直接對照看。其餘欄位順序不變（作業系統／發生位置／
+     五個嚴重度欄）；colgroup 寬度跟著換位置，子表格 colspan 仍是 9。
+  38.（2026-09-21 更新）依主機母列的展開觸發點擴大（Aimi 要求）：
+     ① 「弱點數」數字改連結樣式（kit 的 .row-action.detail，藍色半粗），點下去展開子表格。
+     ② 主機名稱也能點擊展開，維持一般文字色（不上連結藍，避免整欄 IP 全變藍），滑過才
+        變連結色；左邊展開箭頭保留，當展開狀態指示。
+     ③ 三個點擊點都導到同一個 .expander（頁尾 script 轉發 click），展開／收合邏輯沒有另外
+        寫，仍是 kit.js 的。「發生位置」與五個嚴重度數字沒有變成觸發點。
+  39.（2026-09-21 更新）Aimi 指定兩點：
+     ① 主機欄整個儲存格都能點擊展開（第 38 條原本只有 IP 文字），空白處也算；點箭頭本身
+        由 kit.js 處理，頁尾 script 遇到點在箭頭上就不再轉發，避免一次點擊切換兩次。
+     ② 子表格最左側的分隔線要延伸完整：原本第 24 條用容器 padding-left:20px 縮排，列與列
+        之間的線（td border-bottom）也跟著從 20px 才開始。改成容器 padding-left:0、由
+        子表格第一欄儲存格自己補 20px＋原本的儲存格 padding，文字起點沒變，線從最左
+        邊畫到最右邊，子標頭灰底原本就是通版的所以不受影響。kit gap（回報 Aimi）：
+        kit.css 的 .subtable 用容器 padding 做縮排，會讓列分隔線跟著縮進，建議改成
+        第一欄儲存格加 padding。
+  40.（2026-09-21 更新）依主機子表格的「弱點名稱」改成連結樣式，點下去跟右邊「校對」一樣
+     開校對 modal（Aimi 要求）。樣式沿用 scan-jobs.html 的「掃描名稱」連結寫法：
+     .row-action.detail 的藍色，字重改回 regular（不用半粗，長名稱整串半粗太重）；
+     右邊「操作」欄的「校對」保留。「依弱點」表格的弱點名稱也是同樣做法（Aimi 補充）。
+  41.（2026-09-21 更新，同日依 Figma 重做）校對 modal「標示已校對」disabled（改了知識庫
+     內容、還沒選處理方式）時，hover 會跳提示氣泡「請先設定儲存版本方式：覆蓋現有版本、
+     另存新版本或恢復預設」（Aimi 要求）。氣泡樣式照 Figma Tooltip 元件 639:3791：
+     ① 深底白字（--gray-900／--text-on-primary），深色模式反過來白底＋--gray-800 字；
+     ② 內距上下 8、左右 12（--space-xs／--space-s），圓角 4（--radius-card），文字 Body
+        16/28，單行不換行，沒有邊框、沒有陰影；
+     ③ 下方 12px 寬的小三角形，這裡用 Figma 的「靠右」版（三角形離氣泡右邊 12px，氣泡右邊
+        對齊按鈕右邊、往左長）；Figma 另有「正常置中」「靠左」兩種，這頁用不到沒做；
+     ④ 離目標物件 4px（三角形尖端到按鈕上緣，Figma 元件說明寫的）。
+     kit 沒有 tooltip 元件，這是本頁自己寫的（.btn-tip，已被第 44 條取代，改吃 kit 的 .tip），建議回報 Aimi 之後決定要不要納進
+     kit。按鈕沒 disabled 時不顯示。第一版借 .dropdown 面板的白底邊框樣式，已被本條取代。
+  42.（2026-09-21 更新）校對 modal 右側兩處調整（Aimi 要求）：
+     ① 選了覆蓋現有版本／另存新版本之後，選項列上方那行「已選擇：標示已校對時會…」拿掉，
+        選什麼都不再出現說明文字，只靠選項列裡選中那顆（primary）表示。還沒選之前的提示
+        「你修改了 V3 的內容，請選擇處理方式」保留。
+     ② 語系（繁中／英文／日文）從 .card-tab 改成 .selector 下拉「語系：繁中」，跟下面
+        「載入版本」下拉同款、各自一排。示範用：切語系目前只換選單文字，不會換下面的
+        版本清單與內容（真實情境英文可能只有 V1，見 kb-editor.html 版本矩陣）。
+  43.（2026-09-21 更新）校對 modal 右側兩個下拉的標題從選單裡面的文字（「語系：繁中」
+     「載入版本：V3」）改成小標放在選單左上方，選單裡只顯示選到的值（「繁中」「V3 ＋
+     簡稱 tag」）。用 kit 的 .field + label（跟下面「校對要填的欄位」同款）。選「另存新版本」
+     時選單裡顯示「新版本」，選「不載入版本」時顯示「不載入版本（自己填寫）」，上方小標
+     都維持「載入版本」。第 36、42 條提到的「載入版本：…」文字以本條為準。
+  44.（2026-09-21 更新）kit 已收進本頁回報的項目（d8fef52、aa18f1c 等 commit），清掉本頁對應的
+     補丁、改吃 kit 正式版，逐項在瀏覽器量測過跟清之前一致：
+     ① .subtable：灰底不被蓋、縮排 20px 放在第一欄儲存格（列分隔線從最左邊畫到最右邊）——
+        kit 已有，拿掉本頁 4 條覆蓋。
+     ② .view-toggle 相鄰按鈕 border 重疊與選中 z-index——拿掉本頁 3 條覆蓋。
+     ③ .def-list.cols-2 分隔線：拿掉本頁的 CSS 跟頁尾 script（之前會跟 kit 畫的疊成兩條）。
+     ④ 篩選列→表格、表格→分頁 8px 留白：kit 預設，拿掉本頁覆蓋。
+     ⑤ 與前次比對的切換：改用 kit 的群組機制，.view-toggle 帶 data-view-group="diff"、按鈕
+        data-view、面板 data-view-panel＋data-view-group="diff"，跟「依主機／依弱點」（沒寫
+        群組）互不干擾，頁尾自寫的 data-diff script 拿掉。
+     ⑥ 依主機母列展開：整個主機儲存格由 kit 觸發，弱點數連結保留 .row-toggle 由 kit 處理，
+        本頁的 CSS 跟轉發 script 拿掉。
+     ⑦ 「標示已校對」的提示氣泡：.btn-tip 換成 kit 的 .tip.tip-right.tip-if-disabled，本頁
+        自己的 tooltip CSS 拿掉。
+  45.（2026-09-22 更新，Aimi 逐條檢查操作邏輯矛盾後決議）
+     ① 校對 modal 離開防呆：原本只有「恢復預設」「覆蓋現有版本」跳確認框，取消／點遮罩
+        關閉會直接丟掉修改、完全沒提示。Aimi 說離開動作都要防呆。改成只要內容跟載入的
+        版本不同（或不載入版本時已經打了字），按取消或點遮罩背景都會先跳「確定要放棄這些
+        修改嗎？」，選繼續編輯才會留在原地；「標示已校對」本身不算放棄，不在攔截範圍
+        （用 data-kb-cancel 精準標記取消鈕，不是整個 .btn-secondary）。
+        技術細節：這個攔截要在 kit.js 關閉 overlay 的監聽「之前」發生，用 document 上
+        capture 階段的監聽＋stopPropagation，不管 kit.js 的 script 標籤先後順序都攔得到。
+     ② 校對 modal footer 重構：「標記誤報」「標記忽略」原本是兩顆會直接關窗的按鈕，繞過了
+        「改了內容要選處理方式才能標示已校對」這條防呆——按這兩顆一樣會丟修改、卻不用先
+        選處理方式。既然示範資料本來就是「標記誤報同時也代表校對完成」（誤報那筆＝已校對
+        ＋誤報），拿掉這兩顆，改成modal內容區「誤報／忽略」三選一（正常／誤報／忽略，
+        view-toggle）。footer 只留「取消／標示已校對」，「標示已校對」變成唯一的儲存
+        動作，防呆規則统一只管這一顆按鈕。
+        （2026-09-22 再更新）誤報／忽略這組按鈕原本放在 footer 左側，Aimi 指出它是要填寫
+        的內容判斷，不是視窗的操作動作，改放進 modal-body 內容區最上方（review-grid 雙欄
+        之前，跟本次檢測結果／知識庫條目平行的獨立一行），footer 回到單純「取消／標示
+        已校對」置右。
+        kbDoneBtn 原本用 class 選（.modal-footer .btn-primary）在加了這組 toggle 後會選錯
+        （選到「正常」預設選中的那顆），改用 id="kbDoneBtn" 精準指，搬位置後這個 id
+        仍然有效不用再改。
+     ③「不載入版本」的「另存新版本」原本是灰字列裡的一個 checkbox，跟載入版本時的處理方式
+        三選一（按鈕組樣式）長得不一樣，同一件事兩種控制項。改成一致的 view-toggle 兩顆
+        按鈕「只用這次／另存新版本」（預設選中「只用這次」），視覺跟載入版本時的處理方式
+        選項列同款。
+     ④ 語系（繁中／英文／日文）切換原本沒有任何反應。改成真的會換版本清單跟內容：
+        繁中 V3／V2／V1（跟原本一樣）、英文只有 V1、日文目前沒有任何版本——日文刻意留空
+        示範「此語系尚無版本」的空狀態（灰字說明＋只剩「不載入版本」可選）。
+        這裡引用的繁中/英文版本數跟 kb-editor.html 的版本矩陣демo一致；日文在 kb-editor
+        demo 資料裡其實有 V1/V2 兩個版本，這裡刻意留空只是為了示範空狀態 UI 長相，
+        兩邊版本數量不同步，之後真的接資料源時要注意。
+     ⑤ 篩選列：拿掉「嚴重度」chip（Aimi 確認不是問題但順手拿掉簡化）；「校對狀態」chip
+        改成跟「依主機／依弱點」同款的並排按鈕（view-toggle，全部／已校對／未校對），
+        取代原本「chip ＋另外一個『只有未校對』checkbox」兩個控制同一件事的重複。這組
+        按鈕帶 data-view-group="review-status"，避免跟同一個 .sheet 內其他沒寫群組的
+        view-toggle（依主機／依弱點）共用 kit.js 的收合範圍。跟其他 chip 一樣是示範用，
+        沒有真的套用篩選。
+     ⑥ 弱點名稱／操作欄「校對」兩個入口開同一個校對 modal：Aimi 確認這是刻意的——目前
+        不會有獨立的弱點詳情頁，校對就是這裡最重要的動作；之後如果做詳情頁，會在「操作」
+        欄另外加按鈕，不會動弱點名稱這個連結。
+  46.（2026-09-22 更新）示範資料矛盾修正（第 33⑥ 條記過的問題）：本頁原本是「初掃 第 1 次」
+     卻有「與前次比對」分頁，初掃沒有前次可比。改成「複掃 第 2 次」（完成時間比照
+     scan-jobs.html 第一列 2026/09/04 15:50），比較基準「第 1 次」剛好對應同一份 demo 的
+     初掃那次，兩邊終於對得起來；scan-jobs.html「比對初測」連結本來就指向這一列，現在
+     連過去的頁面身分也對了。data-crumb-last 同步改成「主機弱掃 第 2 次」。
+     新增規則（尚無法在單一靜態頁示範兩種狀態，用 body 屬性做開關）：初掃沒有前次可比、
+     也不用複測驗證，data-scan-type="initial" 時「與前次比對」分頁按鈕整個藏起來（連點
+     都點不到），頁尾「完成複測驗證」跟著藏（它是靠分頁 active 才顯示的 tab-panel）。
+     本頁 data-scan-type="rescan"，維持正常顯示；要看初掃隱藏後的長相，把這個屬性改成
+     "initial" 即可。原始報告檔的檔名（VA_Host List_V1.xlsx 等）沒有跟著改版號，這幾個
+     檔名代表報告檔本身的版本、不是掃描次數，先沒動，如果之後要對應掃描次數要再討論。
+     「本次報告」分頁步驟①的「報表類型」原本寫死「初次檢測報告」，改成複掃後這個值也
+     對不起來，一併改成「複測報告」（呼應頁尾「完成複測驗證」按鈕跟比對分頁的用語）。
+  47.（2026-09-29 更新）kit.css 的 .view-toggle 選中樣式改成空心（Figma 7650:37565，見
+     CLAUDE.md／kit.css 說明）。本頁「依主機／依弱點」「校對狀態」「與前次比對」（全部
+     弱點／新增／已修復／仍存在）、校對 modal 內「誤報／忽略」「處理方式」「儲存方式」
+     這幾組都沒有另外寫覆蓋，自動吃到新樣式，沒有要改的地方。
+  48.（2026-09-21 更新，同日再修）「與前次比對」分頁補上主管要求的報告內容預覽區塊，
+     放在 KPI 卡跟下面的比對清單中間，跟兩者一樣是這個分頁固定會有的內容，不受
+     diffToggle（全部弱點／新增／已修復／仍存在）篩選影響：
+     ① 標題「複測報告會這樣寫」改成「複測報告建議」（Aimi 要求）。
+     ② 表格第一版自己刻了 .report-preview-table（純文字表格），Aimi 指出頁面上新形式
+        太多，改用 kit 現成的 .table 元件（跟下面比對清單同一套），數字欄補
+        .num-col 置中，拿掉 page-local CSS。內容不變：掃描（初掃／複掃／減少數量）
+        × 嚴重度（緊急／高／中／低／資訊）五欄，示範數字照截圖給的（初掃複掃都一樣、
+        減少數量全 0，demo 資料目前沒有做出差異）。
+     ③ 上下兩排說明文字合併成一句：「以弱點 port 數計算，僅含兩次都掃到的 7 台主機，
+        跟上方弱點項目數的計算基礎不同；可搭配下方清單「與前次比對」篩選查看明細。」
+        原文提到的「新增」「仍存在」tag、「主機數 ↓」排序拿掉了（這些目前都還沒實際
+        做出來，弱點校對清單分頁沒有「與前次比對」篩選 chip、也沒有主機數欄可排序），
+        需要的話再跟我確認範圍另外補。
+  49.（2026-09-29 更新）弱點校對清單篩選列重新分排（Aimi 要求「並排按鈕放同一排、小 tag
+     放同一排，不要混用」）：原本第一排只有「依主機／依弱點」、第二排混了「關鍵字」chip、
+     「校對狀態」view-toggle、「誤報／忽略」chip。改成第一排放兩組 view-toggle（依主機／
+     依弱點＋校對狀態），第二排放兩顆 chip（關鍵字＋誤報／忽略）。HTML 上只是把
+     `#proofToggle` 從第二個 `.filter-chips` 搬進第一個，互動邏輯沒變。
+  50.（2026-09-29 更新）弱點校對清單新增批次操作（Aimi 要求）：依主機、依弱點兩個表格
+     的每一列都能勾選，主機勾了會連動底下所有弱點一起勾（反過來，弱點勾了不夠全部再
+     由子列狀態決定主機是全勾／半勾／不勾），勾 1 筆以上就跳出批次動作列（標記誤報／
+     標記忽略／標示已校對／取消選取）。
+     ① 母子連動整套是 kit.js 既有的機制（`.cb-cell` + `.row-cb` + `data-group`/
+        `data-child`，`examples/list.html` 已經在用），不是我重寫的——依主機表格母列
+        跟子表格弱點列本來就是同一組 `data-group`/`data-child`，勾母列時 kit.js 自己
+        會往下找到巢狀在 `.subtable` 裡的 `.row-cb` 一起打勾，不用額外寫連動邏輯。
+        依主機主表格、每個子表格（7 個）、依弱點表格都補上 `.cb-cell` 欄（colgroup／
+        thead／每一列），母列原本「展開箭頭＋主機名稱」共用一格，拆成 `.cb-cell`
+        （展開箭頭＋checkbox）＋獨立一格主機名稱（維持 `.row-toggle`，整格仍可點擊
+        展開），母列 colspan 從 9 改 10。
+     ② 批次動作列（design-system-gaps B3，kit 目前沒有現成元件，VulnEye 第一次做）：
+        位置在篩選列跟表格中間、不 fixed。依主機、依弱點各自一條（各自對應自己的
+        `.table`），互不影響。
+        （2026-09-29 再更新）第一版是「勾選數 >0 才顯示，底色套 --bg-focus 卡片樣式」，
+        Aimi 指出這個卡片底色不是設計系統裡的樣式，拿掉了——`--bg-focus` 淺色模式其實
+        是 `#fffaeb`（偏黃），不是我以為的淺藍，跟「選取列」的視覺聯想是我自己套錯的。
+        改成動作列一直顯示、右側「標記誤報／標記忽略／標示已校對／取消選取」四顆按鈕
+        沒選取任何東西時是 disabled，選了才解鎖，跟頁面其他 disabled 按鈕（送出客戶、
+        標示已校對）同一套邏輯，不用額外處理 hover/active（disabled 按鈕原生就收不到）。
+     ③ 示範用：三個動作按鈕目前只清空選取、按鈕跟著鎖回 disabled，沒有真的改表格內的
+        校對狀態／誤報忽略標記（要逐列比對勾了哪些、寫回對應欄位，示範階段先不做，跟
+        校對 modal 的「標示已校對」目前也只是關窗、沒真的寫回是同一個層級）。
+     ④（2026-09-29 再更新）「已選取 N 筆」原本自己獨立一顆 span，Aimi 指出要能跟「共 N
+        筆」共用 kit 的 `.count-note` 樣式、並存在同一行。改成「共 N 筆 · 已選取 N 筆」
+        單一 `.count-note`，中間用 · 分隔（跟 diff-baseline「第 1 次 · Nessus ·
+        2026/09/03」同一種分隔用法）；JS 只更新「已選取」後面那個數字，不用整串重寫。
+        本頁「弱點校對清單」原本沒有「共 N 筆」這個元素（跟 scan-jobs／kb-list 不同，
+        這兩頁列表最上面本來就有 `.count-note`），這次順便補上：依主機表格用「共 7
+        筆」（對應「範圍主機」卡片的 7）、依弱點表格用「共 96 筆」（對應「弱點項目」
+        卡片的 96），數字都是示範用、沒有接資料源。
+  51.（2026-09-29 更新）批次動作列「標記誤報」「標記忽略」合併成一個「標記 ▾」下拉按鈕
+     （Aimi 說原本四顆太長，跟我討論後拍板），選單三個選項：誤報／忽略／列入。「列入」
+     是新增的——原本只有「標記」方向，選錯了想批次改回正常沒有對應動作，這次順便補上。
+     「標示已校對」是另一個欄位（校對狀態），維持獨立主按鈕，沒有跟這個下拉合併。
+     ① 沒有用 kit 的 `.selector`：那個語意是「顯示目前選到的值」，選完會把按鈕文字換成
+        選項文字，但這裡按鈕要一直顯示「標記」，批次選取的列本來就可能狀態不一樣，沒有
+        單一「目前值」可顯示。借用 `.dropdown`/`.dropdown-option` 的視覺樣式，但用自己
+        的 class（`.bulk-mark`）＋自己的開關邏輯（獨立一套 document click 監聽收合選單，
+        不吃 kit.js 的 `.selector` 監聽）。
+     ② 動作用的屬性從 `data-bulk` 改名 `data-bulk-action`（「標記」觸發鈕本身不算一個
+        動作，只是開選單，用 `.bulk-mark-toggle` 識別，避免跟 `[data-bulk-action]` 的
+        點擊處理混在一起——點觸發鈕不該清空選取）。
+     ③ 選了任一選項（誤報／忽略／列入）後跟其他動作一樣，示範行為是清空選取＋收起選單，
+        沒有真的改表格內容，同第 50 條③的說明。
+  52.（2026-09-29 更新）拿掉批次動作列的「取消選取」按鈕（Aimi 覺得多餘）——要清空選取，
+     直接取消勾表頭全選或逐一取消打勾即可，不需要獨立按鈕。動作列現在只剩「標記 ▾」跟
+     「標示已校對」兩顆。
+  53.（2026-09-29 更新）kit 收進批次操作動作列 `.bulk-bar`、動作選單按鈕 `.bulk-mark`、
+     表格空狀態 `.empty-state`（commit 01ff01a，design-system-gaps B2／B3 各自的第一個
+     答案）。本頁對應的 page-local CSS（`.bulk-bar`／`.bulk-mark`／`.empty-state` 三段）
+     跟 JS（`kbBulkSetup` 函式本體、`.bulk-mark` 的全域點外面收起監聽）都拿掉，改吃
+     `window.kbBulkSetup`（kit.js 提供），本頁只留兩行呼叫。量測驗證跟拿掉補丁前一致：
+     母子連動、標記選單開合、選項清空選取、不勾東西時按鈕鎖 disabled、與前次比對分頁的
+     空狀態都正常。CLAUDE.md「子欄位/可展開的列」也補了一句 checkbox 母子連動可以跟
+     巢狀 subtable 一起用（不用改 code，純文件）。
+  54.（2026-09-30 更新）「校對狀態」拿掉「全部」按鈕（Aimi 指出太長，反正取消選取就等於
+     全部，同款元件——kb-list 掃描工具／審閱狀態／風險等級、scan-jobs 檢測類型／狀態
+     ——都比照辦理）。改成沒有按鈕永遠選中：選中的按鈕再點一次會取消選取，回到全部都
+     沒選中＝全部。技術上加 `.deselectable` class，用 capture 階段的監聽搶在 kit.js 的
+     `.view-toggle` 監聽之前處理「已選中再點一次」的取消動作，不影響一般 `.view-toggle`
+     （一定要有一顆選中的那種，例如「依主機／依弱點」、「與前次比對」——「全部弱點」是
+     一個真的獨立面板〔合併表格〕，不是單純「沒篩選」，這兩組沒有加 `.deselectable`）。
+  55.（2026-09-30 再更新）跟 Aimi 討論後決定分兩種邏輯：只有兩個互斥選項的「校對狀態」
+     維持單選＋可取消（兩個選項都選＝都不選，沒有實際用途）；kb-list 的「掃描工具／
+     風險等級」、scan-jobs 的「狀態」這種三個以上選項、彼此可以組合看的，改成真正多選
+     （新增 `.multi-select` class，各頁複製一份，本頁沒有這種案例不用動）。
+  56.（2026-10-01 更新）校對 modal 內的「誤報／忽略」三選一（正常／誤報／忽略）從
+     `.view-toggle` 並排按鈕改成 kit 現成的 radio 元件（`.choice-group` + `.radio-row` +
+     原生 `input[type=radio]`，跟 examples/edit.html「全部條件符合／任一條件符合」同款）。
+     Aimi 指出這是「內容設定」（寫入資料的一個選項值），不是「切換要看哪個視圖」，
+     語意上該用 radio 而非按鈕列——跟第 54、55 條處理的 `.view-toggle` 系列是不同問題：
+     那兩條在意的是同一元件「要不要有全部/能不能多選」，這條在意的是「這個選擇本身
+     該長什麼樣子」。技術上原生 radio 靠 `change` 事件（含鍵盤方向鍵切換），不是
+     `click`，`kbRenderFp()` 跟著改成設定 `.checked` 而非切換 btn-primary/btn-secondary
+     class。
+  57.（2026-10-01 再更新）校對 modal 小標顏色：確立判斷原則是「唯讀參考值＝灰字，可編輯
+     欄位的標籤＝黑字」，不是看它用哪個 class。藉這個原則抓出本頁原本就有的不一致——
+     右側「弱點說明（V3）」「弱點影響（V3）」「建議修補方式（V3）」三格 textarea 明明
+     可以直接打字編輯，卻沿用了左側「本次檢測結果」唯讀區塊的 `.ro-label`（灰字），
+     跟它們正上方同樣可編輯的「語系」「載入版本」（用 kit 標準 `.field label`）顏色
+     對不起來。新增頁面局部 `.kb-field-label` class 給這三格用；左側唯讀區塊跟
+     「可用變數」下面的唯讀變數對照表維持 `.ro-label` 灰字不變。
+  58.（2026-10-01 再更新）接續第 57 條，Aimi 指出黑字小標的字級規格錯了——CLAUDE.md
+     362 行「input / Selector」明寫欄位 label 該用 `--text-body` Semibold（16px），
+     不是 14px/Regular。追出來這其實是 kit.css 自己的 gap：`.field > label` 寫成
+     `--text-caption` Regular（14px），沒照自己文件做，連帶「語系」「載入版本」「資料庫
+     名稱」「資料庫版本」這幾個本來就在用 `.field > label` 的欄位全部一起錯。先在本頁
+     用 `#reviewVuln .field > label` 局部蓋成正確的 16px/Semibold（`.kb-field-label` 比照
+     改同規格），之後要連同 kit.css 本體一起回寫，影響範圍不只這頁（detail.html、
+     list.html、scan-jobs.html 都用 `.field`）。
+     同一輪另外兩項：①「本次檢測結果」左側 `.ro-box`（摘要／弱點說明／弱點影響／修補
+     建議）原本做成灰底＋邊框、刻意長得像 disabled input，但內容其實是唯讀文字不是
+     欄位，而且底色文字色也沒對齊 kit 真正 disabled input 的規格（`--bg-disable`／
+     `--text-disable`），是自己湊的四不像；Aimi 指出不該用輸入框外觀，拿掉框線底色
+     改成純文字，跟右側真正可編輯的 textarea（有框）形成視覺對比。②「誤報／忽略」
+     radio 組前面的小標改名「標記」，字級同步改成 `--text-body` Semibold 黑字（跟上面
+     第 58 條欄位 label 同規格），`aria-label` 一併改成「標記」。
+  59.（2026-10-01 再更新）`.review-grid` 雙欄中間補垂直分隔線，照 layout.md「Column
+     split」規格：1px `--border-default` 垂直線，兩側各留 `--space-big`(32)。grid 從
+     `1fr 1fr`＋`gap:space-m` 改成 `1fr auto 1fr`＋`gap:space-big`，中間插一欄放真的
+     `<div class="review-grid-divider">`（寬度就是線寬本身），線的高度靠 grid 預設
+     stretch 自動撐滿較高的那一欄，不用額外量測定位（跟 `.def-list.cols-2` 要靠 kit.js
+     量 x 座標那種多列情境不一樣，這裡左右各自只是一整塊內容，單一 grid row 就夠）。
+  60.（2026-10-01 再更新）兩項小調整：①「內容為 V3 知識庫原文，修改後需選擇處理方式」
+     左側的 `fa-circle-info` icon 拿掉，純文字就夠清楚，不用圖示強調（旁邊「自己填寫」
+     「你修改了⋯」兩條 `fa-pen` icon 這次沒有一起動，Aimi 只針對這條提）。②「可用變數」
+     改名「代入值對照」——原本的名字加上「本筆弱點的實際值，產出報告時自動代入知識庫
+     正文的代號」這段灰字解釋才看得懂在幹嘛，但這裡其實是唯讀對照表不是「可插入的
+     變數庫」（校對 modal 本來就不能插入內容，見第 6 條），改名後語意自己說明清楚，
+     灰字解釋跟著拿掉。kb-editor.html 256 行有同概念的「可用變數」section-title，
+     這次沒有一起改，之後要統一命名再處理。
+  61.（2026-10-01 再更新）「本次檢測結果」「知識庫條目」這兩個 `.review-grid h4` 小標，
+     Aimi 指出要用 Text/Button 文字樣式（`--text-button` 20px，Semibold），原本套的是
+     `--text-body`（16px），字級調大一階，跟底下的內容/欄位區隔更清楚。
+  62.（2026-10-02 更新）Aimi：「不想要小灰字了，以 ui kit 最新規範為主」。kit 那邊今天
+     （commit aec017e／10de78e，同一個工作目錄共用，對方直接 commit 時把本頁當下的
+     編輯內容一起收進去了，不是等我這邊回寫）把 `.def-list dt`／`.field > label` 統一
+     改成 14px/Semibold/`--text-color`，不再區分「唯讀＝灰字／可編輯＝黑字」。本頁的
+     `.ro-label`（原本灰字，呼應舊版 dt 的唯讀標籤）因此也跟著改成同一套黑字規格；
+     跟它規則變得完全一樣的 `.kb-field-label` 直接拿掉，「弱點說明（V3）」「弱點影響
+     （V3）」「建議修補方式（V3）」三格改回用 `.ro-label`。等於第 57、58 條建立的
+     「唯讀灰字 vs 可編輯黑字」整套判斷邏輯，連同它要解決的不一致，被 kit 的新規範
+     一次性蓋掉了——這是 kit 規範本身演進的結果，不是我這邊改錯。「原廠未提供」那種
+     斜體灰字（表示本筆沒有這項資料的 placeholder，不是 label）不受影響，維持原樣。
+     瀏覽器驗證過全頁小標（含「代入值對照」底下的 `{host}` 等代號）都是統一的黑字，
+     console 無錯誤。
+  63.（2026-10-02 再更新）「本次檢測結果」區塊最上面的「外掛編號」「風險分數」原本是
+     唯一還留著左右並排（`.def-list` + 自訂 `88px 1fr` 欄寬）的兩列，跟底下「影響主機
+     與 Port」「原始報告」「摘要」⋯這些已經是標籤在上、內容在下的 `.ro-label`／
+     `.ro-box` 堆疊排法不一致。Aimi 指出小標跟內文也該統一上下排列，拿掉 `<dl
+     class="def-list">`，改成跟其他項目同款的 `.ro-label`+`.ro-box` 兩列。整個「本次
+     檢測結果」區塊現在排法完全一致，瀏覽器驗證過，console 無錯誤。
+  64.（2026-10-05 更新）校對 modal 標記成「誤報」或「忽略」時，右側「知識庫條目」整欄停用
+     （跟 Aimi 討論後拍板）：這兩種標記的弱點不會進報告，知識庫內容、校對要填的欄位都
+     不需要填。做法是停用而不是藏起來——使用者點錯切回「正常」時，改到一半的內容還在。
+     停用時：textarea／input 設 disabled、兩個 selector 不可點，樣式照 CLAUDE.md 的
+     disable 規格（底 `--bg-disable`、字 `--text-disable`；kit.css 目前沒有 .input／
+     .selector 的 disabled 樣式，這裡先頁面局部補，之後可回寫 kit），欄位上方多一行
+     純文字「已標記為誤報／忽略，不會出現在報告中，不需填寫」；「內容為 V3 知識庫原文」
+     「你修改了⋯請選擇處理方式」那排說明跟防呆整個略過，「標示已校對」不會再被擋。
+     「代入值對照」本來就是唯讀，不受影響。技術上 kbRenderFp() 現在除了設 radio 勾選，
+     也負責切 `.kb-col.is-off`、disabled、說明文字，並重跑 kbRender()；radio 的 change
+     監聽改成呼叫它，不只更新變數。改到一半的內容不丟也不存（不進報告，留不留都沒影響）。
+     右下角主按鈕：Aimi 後來拍板不分狀態，一律叫「儲存」（原本「標示已校對」改名，也拿掉
+     勾勾 icon）。校對狀態＝已校對還是由按下儲存這個動作隱含寫入，不再用按鈕文字表達。
+     列表上批次動作列的「標示已校對」是另一顆按鈕，不受影響。  65.（2026-10-05 更新）釐清「標記」與「校對」兩個維度，跟 Aimi 討論後拍板：
+     ①標記（列入／誤報／忽略）描述這筆弱點是什麼；校對（已校對／未校對）描述人有沒有確認。
+     列表欄名「校對狀態」改「校對」、「誤報／忽略」改「標記」，篩選 chip 同步（選項「正常」
+     改「列入」，順序列入／誤報／忽略）。②跳窗的「儲存」一律等於已校對，跳窗不放校對的
+     radio，要退回未校對只能在列表批次做。③標記成誤報或忽略的列，「校對」欄一律顯示
+     「—」（不再顯示已校對／未校對，因為這兩種標記本身就是結論）；只有「列入」的列才有
+     已校對／未校對。④標記欄沒標過的列原本顯示「—」，改顯示「列入」，樣式 Aimi 從預覽
+     （A 純文字／B 灰／C 藍／D 綠／E 空心）選了 C：藍 tag（`tag-info`），預覽卡已拿掉。
+     ⑤跳窗的「標記」第一項也從「正常」改「列入」，跟列表一致（內部 data-fp="normal"
+     沒改，只是顯示字）。
+  66.（2026-10-05 更新）欄位順序調整（Aimi 指示）：「標記」移到「校對」左邊（因為標記是
+     結論、校對是進度，且誤報／忽略的列校對只顯示「—」，標記在左邊先讀到比較順）；
+     「內容來源」搬到「弱點名稱」右邊。依主機的子表格：弱點名稱／內容來源／發生位置／
+     嚴重度／標記／校對／操作；依弱點表格：嚴重度／弱點名稱／內容來源／影響裝置數／
+     發生位置／標記／校對／操作（colgroup 欄寬跟著對調）。勾選欄、母子連動沒受影響。
+  67.（2026-10-05 更新）操作欄的藍色文字連結「校對」改名「編輯」（Aimi 指示）：「校對」現在
+     是一個欄位名稱（已校對／未校對），操作欄再放同名動作容易混；而且按進去的跳窗裡
+     可以改標記、改知識庫內容、按儲存，本質是編輯這筆弱點。連結樣式（藍色 row-action）
+     沒動，共 15 處（依主機子表格＋依弱點表格）。跳窗本身的標題、按鈕不受影響。
+  68.（2026-10-05 更新）弱點校對分頁最上面新增「標記分佈」圓餅圖（列入／誤報／忽略，示範數字
+     93／2／1，加起來 96 對齊弱點項目；顏色跟列表一致：列入＝藍 tag-info、誤報＝紅、忽略＝灰）。
+     原本 4 張卡是 3+3（兩列各兩張 span-3），圓餅圖變三張，改成第一列範圍主機／弱點項目
+     （span-3，不變）、第二列嚴重度分佈／標記分佈／校對進度各 span-2（kit 的 dash-grid 是
+     6 欄，3 張剛好平分）。順序標記在校對左邊，跟列表欄位順序一致。圓餅圖用的是頁內寫死的
+     conic-gradient，跟既有兩張一樣，不是真的算出來的。
+  69.（2026-10-05 更新）「校對進度」圓餅圖改成只算「列入」：標記成誤報／忽略的列，校對欄
+     一律「—」（不需校對），不該算進分母，否則進度永遠到不了 100%。Aimi 指示：標題直接
+     寫清楚，並用灰色小分頁（kit 的 `.stat-toggle`，純文字底線切換）讓人選要不要只看列入。
+     卡片標題變成「列入校對進度｜全部校對進度」：預設「列入」＝已校對 0／未校對 93；
+     「全部」＝已校對 0／未校對 93／不需校對 3（誤報＋忽略，深灰），分母 96。技術上吃 kit 現成
+     的 tab 機制（data-panel／`.tab-panel[data-panel-id]`），加 `data-tab-group="proof-scope"`
+     避免被頁面層級 page-tab 的切換誤把這兩個面板藏掉。字級頁面局部蓋成 16px 對齊其他卡的
+     h3（kit 預設 .stat-toggle-item 是 14px）。「不需校對」是這次補的名稱，demo 用。
+  70.（2026-10-05 更新）「關鍵字」「標記」兩顆篩選 chip 跟「共 N 筆・已選取 N 筆」改放同一排
+     （Aimi 指示）：原本 chip 一排、筆數＋批次動作一排。現在 chip 在左、筆數緊接在後、
+     批次動作靠右，三者一列，省一排高度。chip 原本是兩個面板共用的一排，因為筆數／動作列
+     屬於各自面板，所以 chip 改成各面板動作列裡各放一組（依主機／依弱點），代價是 demo 裡
+     兩組 chip 不同步狀態；之後接真資料時要共用同一份篩選條件。
+  71.（2026-10-06 更新，kit 同步）kit commit 3fd809d 收進了回寫候選，對照 diff 跟我整理的
+     內容一致（kit.js 另外加了「頁面分頁不誤切卡片內面板」的保護）。本頁對應的頁面局部樣式
+     清掉、改吃 kit：①輸入類 disabled → `.input:disabled`／`.selector.is-disabled`
+     （kbRenderFp 改成對 selector 加減 is-disabled，不再用 `.kb-col.is-off`）；②校對進度卡
+     stat-toggle 字級 → kit 的 `.chart-head .stat-toggle-item`；③`.bulk-lead` → kit 版；
+     ④左欄唯讀欄位 `.ro-label`／`.ro-box` → `.def-list.is-stacked`（原始報告的 tag 改放 dd）；
+     右欄三格 textarea 與「代入值對照」的標籤改用 kit 的 `.field > label`；⑤`.review-grid`
+     自己的 grid＋分隔線 div → kit 的 `.col-split`（`.review-grid` 只留欄標題字級）。
+     以上第 57～59、62、63、64、68～70 條描述的頁面局部 class 已不存在，以本條為準。
+     量測驗證：標籤全頁 14px／600／#333，欄距 32px、右欄 border-left 1px＋padding 32px，
+     停用時底 #f0f0f0、字 #aaa、cursor not-allowed，切回列入恢復，切換頁面分頁卡片面板
+     不被誤藏，console 無錯誤。
+  72.（2026-10-06 更新，kit 同步）kit 又進了 6 個 commit（04e6246 每頁顯示 chip、c03d462
+     multi-select 出處補註、a356343 有框按鈕尺寸 S32／M40、40b0646 secondary hover／actived
+     對齊 Figma、17d8ab8 btn-lg、8e70e59 Primary／Danger actived 與 disable）。逐個核對：
+     ①「每頁顯示 N 筆」規範＝chip 列第一顆（10／20／50／100，預設 10 筆）：本頁依主機、依弱點
+     兩組 chip 都已經是每頁顯示→關鍵字→標記的順序（kit 端先替本頁補上了），scan-jobs、
+     kb-list 也已補；②按鈕尺寸／secondary／Primary／Danger 變更本頁沒有頁面局部覆蓋，
+     直接吃 kit，量測：小尺寸有框無框都 32 高、view-toggle 選中底 #f2f4fc／框與字 #5a75d7、
+     Primary disabled 變成底 #ddd＋白字（本頁「標示已校對」「送出客戶」的 disabled 狀態自動
+     跟著變），console 無錯誤；③kb-editor 的 .ver-cell 是模仿 secondary 的頁面局部元件，
+     已跟著改（見 kb-editor 第 18 條）。
+  73.（2026-10-29 更新）重新討論「儲存等於已校對」（Aimi：儲存不一定代表校對完成）。拍板：
+     標記＝列入時，跳窗右下角改三顆：取消｜儲存版本（secondary）｜儲存並標示為已校對
+     （primary）。「儲存版本」只存版本內容、不動校對狀態（已校對的項目再改內容存版本，維持
+     已校對）；不叫「暫存」，因為不確定會存到哪，內容是跟著版本走的。「儲存並標示為已校對」
+     要求所有必填欄位（label 帶 * 的，目前是資料庫名稱）都填了才能按；兩顆都要先選好處理方式
+     （內容改過的話）。標記＝誤報／忽略：只剩取消｜儲存（primary），沒有校對狀態可標，列表
+     校對欄維持「—」。按鈕停用時 hover 的 tooltip 會寫原因（沒選處理方式／必填欄位名稱）。
+     取代第 64、65 條裡「儲存等於已校對」「右下角一律叫儲存」的說法。
+  74.（2026-10-29 更新）補「改回未校對」的反向動作（原本已校對的項目沒有路可以退回；Aimi
+     問「為什麼不能兩個都選」，列表批次跟跳窗兩個地方都做）：①列表批次動作列在「標示已校對」
+     左邊加「標示未校對」（secondary，跟已校對一樣要先勾選才能按）；②跳窗只有「已校對」且
+     標記＝列入的項目，footer 最左邊多一顆文字連結「改回未校對」，按了就把那筆改回未校對並關窗；
+     打開時從列表該列的「校對」欄讀目前狀態。demo 上按「儲存並標示為已校對」「儲存」「改回
+     未校對」會把結果寫回列表那一列的標記／校對欄，方便看狀態怎麼變（批次動作仍只是清空
+     選取，沒有真的寫回）。
+  75.（2026-10-29 更新）兩個文案／樣式調整（Aimi 指示）：①校對跳窗 primary 按鈕「儲存並標示為
+     已校對」縮短成「儲存校對」（程式裡的文案兩處一起改，說明 73、74 條裡的舊名稱以本條為準）；
+     ②「改回未校對」從 `.btn-link`（藍字）改成設計系統的純文字按鈕 `.btn-text`（`--text-color`
+     黑字、無底無框，hover 才出現 `--bg-hover` 底），不要醒目色，避免跟右邊的 primary 搶視線。
+  76.（2026-10-29 更新，kit 同步）kit 又進了 4120ed2（Q-Atlas 第一批）、9bfcffb（第二批 21 條）等
+     commit，逐條對照後本頁套用：①返回按鈕：頁首不放返回，詳情頁放 Sheet 最左下角，用
+     `btn btn-text` ＋ `fa-arrow-left`，文案「返回清單」（原本 secondary「回掃描作業」）。
+     ②順手修我自己留下的舊文案：兩個確認框裡「標示已校對時」「還沒標示已校對」跟現在按鈕
+     「儲存校對」對不上，改成「儲存時」「還沒儲存」。
+     其餘新規範需要 Aimi 決定，先不動，見對話清單：標題與「基本資料」摘要列（標題下不放
+     摘要列、詳細資料搬進頁籤）、`.stat-num` 統計格改 kit 的 `.kpi`、說明文字廢話。
+  77.（2026-10-30 更新，Aimi 決定）依 kit 新規範「標題下不放摘要列」：標題「主機弱掃」維持
+     24px（Aimi 拍板不改 30px，9/9 依 Figma 22093-196556 的決定留著），下面原本的摘要
+     （檢測類型、完成時間、原始報告檔）搬進新增的第一個頁籤「詳細資料」，標題直接接頁籤。
+     預設停在「詳細資料」（跟列表頁連結「詳細資料」對應）；仍可用 #review／#report／#compare
+     直接開對應頁籤。說明文字廢話依新規範刪掉：本次報告三個步驟下面教操作的灰字（預帶值、
+     下載 Word、上傳最終版）、複測報告建議後半句「可搭配下方清單⋯篩選查看明細」，保留計算
+     基礎那一句（那是資訊不是教操作）。
+  78.（2026-10-30 更新，Aimi 決定）「範圍主機」「弱點項目」兩個只放數字的統計格，從 chart-card ＋
+     `.stat-num`（頁面局部，灰底、16px 標題）改成 kit 的 `.kpi`（Chart/number：淡藍底、14px
+     Semibold 標題、30px 數字、圓角 8）。`.kpi-row` 獨立一排放在圓餅圖上方，下面三張圓餅圖卡
+     （嚴重度分佈、標記分佈、校對進度）維持圖表卡不動；`.stat-num` 相關頁面局部 CSS 一併刪掉。
+  79.（2026-10-30 更新，kit 第三批規範，Aimi 覆核後決定）
+     ①「依主機／依弱點」維持並排按鈕（.view-toggle）、同一個頁籤「弱點校對清單」：我一度照 kit
+       新規範把它升成兩個頁籤，但範圍主機／弱點項目 KPI 和三張圓餅圖（含嚴重度分佈）兩個檢視
+       都要看，拆頁籤就得搬走或重複，Aimi 決定回到並排按鈕，統計卡留在清單上方。這是對 kit
+       「並排按鈕只給換呈現方式」的例外，理由是兩個檢視共用同一組總覽（kit f5edb8a 已把這個情況
+       寫進規範：共用總覽時可留並排按鈕，不再是例外）。
+     ②「校對（已校對／未校對）」並排按鈕改單選設定型 chip「校對：全部」，排在「標記」chip 後面；
+       「與前次比對」的 全部弱點／新增／已修復／仍存在 並排按鈕改單選設定型 chip「變化：全部」，
+       頁尾 script 依選項顯示對應那張表（kit.js 只換 chip 文字）。
+     ③ 校對跳窗裡 JS 產生的「處理方式」「儲存方式」並排按鈕是表單選擇不是呈現方式，改 radio
+       （.choice-group ＋ .radio-row），跟「標記」同一套。選到會跳確認框的項目（恢復預設、
+       覆蓋現有版本）先 preventDefault 不打勾，確認後才切換。
+     ④ 返回鈕改 `btn btn-secondary`（kit 10/30 取代 btn-text），仍固定在 Sheet 最左下角。
+     ⑤ Aimi 確認不動：校對跳窗左（唯讀資料）右（可填欄位）的 .col-split 兩欄、依主機的展開
+       子表格（subrow／subtable）。
+  80.（2026-10-30 更新，Aimi 決定，取代第 77 條的「詳細資料」頁籤）檢測類型、完成時間、原始報告檔
+     三列資料太少，不值得獨立一個頁籤，改回放在標題下面、頁籤上方（kit 說標題下不放摘要列，這是
+     對該規則的例外，kit f5edb8a 已放寬成「資料約 3 列以內、頁籤裡沒有的摘要可放標題下」，現在合規）。頁籤剩「弱點校對清單／本次報告／與前次比對」，預設停在弱點校對清單。
+-->
+
+</head>
+<body data-page="scan-detail" data-crumb-last="主機弱掃 第 2 次" data-scan-type="rescan">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <h1 class="page-title">主機弱掃</h1>
+    <!-- 檢測摘要直接放標題下、頁籤上方（Aimi 決定，資料太少不值得獨立頁籤） -->
+    <dl class="def-list" style="margin-bottom:var(--space-m)">
+      <dt>檢測類型</dt><dd><span class="tag tag-success">複掃</span> 第 2 次</dd>
+      <dt>完成時間</dt><dd>2026/09/04 15:50</dd>
+      <dt style="align-self:center">原始報告檔</dt>
+      <dd style="display:flex; align-items:center; gap:var(--space-s); flex-wrap:wrap">
+        <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>VA_Host List_V1.xlsx</button>
+        <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>VA_detailed_V1.html</button>
+        <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>VA_raw_V1.csv</button>
+      </dd>
+    </dl>
+
+    <div class="page-tabs">
+      <button class="page-tab active" data-panel="review">弱點校對清單</button>
+      <button class="page-tab" data-panel="report">本次報告</button>
+      <button class="page-tab" data-panel="compare">與前次比對</button>
+    </div>
+
+    <!-- ================= 弱點校對 ================= -->
+    <section class="tab-panel" data-panel-id="review">
+
+      <div class="section">
+        <div class="kpi-row" style="margin-bottom:var(--space-xs)">
+          <div class="kpi">
+            <span class="kpi-label">範圍主機</span>
+            <div class="kpi-line"><span class="kpi-num">7</span></div>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">弱點項目</span>
+            <div class="kpi-line"><span class="kpi-num">96</span></div>
+          </div>
+        </div>
+
+        <div class="dash-grid scope-cards" style="margin-top:0; margin-bottom:var(--space-m)">
+          <div class="chart-card span-2">
+            <div class="chart-head">
+              <h3>嚴重度分佈</h3>
+              <div class="tools">
+                <i class="fa-solid fa-table-cells" title="切換表格檢視"></i>
+                <i class="fa-solid fa-chart-pie" title="切換圖表檢視"></i>
+                <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+                <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+              </div>
+            </div>
+            <div class="chart-donut-wrap">
+              <div class="chart-donut" style="width:96px;height:96px;background:conic-gradient(var(--critical-500) 0 2.1%, var(--danger-500) 2.1% 4.2%, var(--warning-500) 4.2% 12.5%, var(--success-500) 12.5% 13.5%, var(--info-500) 13.5% 100%)"></div>
+              <div class="chart-legend">
+                <span class="lg"><span class="dot" style="background:var(--critical-500)"></span>緊急 <span class="val">2</span></span>
+                <span class="lg"><span class="dot" style="background:var(--danger-500)"></span>高 <span class="val">2</span></span>
+                <span class="lg"><span class="dot" style="background:var(--warning-500)"></span>中 <span class="val">8</span></span>
+                <span class="lg"><span class="dot" style="background:var(--success-500)"></span>低 <span class="val">1</span></span>
+                <span class="lg"><span class="dot" style="background:var(--info-500)"></span>資訊 <span class="val">83</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-card span-2">
+            <div class="chart-head"><h3>標記分佈</h3></div>
+            <div class="chart-donut-wrap">
+              <div class="chart-donut" style="width:96px;height:96px;background:conic-gradient(var(--info-500) 0 96.9%, var(--danger-500) 96.9% 99%, var(--gray-300) 99% 100%)"></div>
+              <div class="chart-legend">
+                <span class="lg"><span class="dot" style="background:var(--info-500)"></span>列入 <span class="val">93</span></span>
+                <span class="lg"><span class="dot" style="background:var(--danger-500)"></span>誤報 <span class="val">2</span></span>
+                <span class="lg"><span class="dot" style="background:var(--gray-300)"></span>忽略 <span class="val">1</span></span>
+              </div>
+            </div>
+          </div>
+                    <div class="chart-card span-2">
+            <div class="chart-head">
+              <div class="stat-toggle" data-tab-group="proof-scope">
+                <span class="stat-toggle-item active" data-panel="in">列入校對進度</span>
+                <span class="stat-toggle-sep">｜</span>
+                <span class="stat-toggle-item" data-panel="all">全部校對進度</span>
+              </div>
+            </div>
+            <div class="tab-panel" data-tab-group="proof-scope" data-panel-id="in">
+              <div class="chart-donut-wrap">
+                <div class="chart-donut" style="width:96px;height:96px;background:conic-gradient(var(--success-500) 0 0%, var(--gray-300) 0% 100%)"></div>
+                <div class="chart-legend">
+                  <span class="lg"><span class="dot" style="background:var(--success-500)"></span>已校對 <span class="val">0</span></span>
+                  <span class="lg"><span class="dot" style="background:var(--gray-300)"></span>未校對 <span class="val">93</span></span>
+                  <p class="help">待補 84 筆缺補充內容</p>
+                </div>
+              </div>
+            </div>
+            <div class="tab-panel" data-tab-group="proof-scope" data-panel-id="all" hidden>
+              <div class="chart-donut-wrap">
+                <div class="chart-donut" style="width:96px;height:96px;background:conic-gradient(var(--success-500) 0 0%, var(--gray-300) 0% 96.9%, var(--gray-500) 96.9% 100%)"></div>
+                <div class="chart-legend">
+                  <span class="lg"><span class="dot" style="background:var(--success-500)"></span>已校對 <span class="val">0</span></span>
+                  <span class="lg"><span class="dot" style="background:var(--gray-300)"></span>未校對 <span class="val">93</span></span>
+                  <span class="lg"><span class="dot" style="background:var(--gray-500)"></span>不需校對 <span class="val">3</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 切換按鈕＋面板專屬工具列併成同一排（.toolbar-flow）：兩個 .bulk-bar 從面板裡搬出來，
+             靠 data-view-panel 跟著「依主機／依弱點」顯示一個、隱藏一個。.bulk-bar 在這裡是 display:contents，
+             它的 .bulk-lead（chips＋筆數）與 .bulk-actions 直接成為這排的子項，窄螢幕自動換行 -->
+        <div class="toolbar-flow">
+          <div class="toolbar-toggles">
+            <div class="view-toggle" id="viewToggle" role="group" aria-label="分組方式">
+              <button type="button" class="btn btn-sm btn-primary" data-view="by-host">依主機</button>
+              <button type="button" class="btn btn-sm btn-secondary" data-view="by-vuln">依弱點</button>
+            </div>
+          </div>
+          <!-- 關鍵字改成常駐搜尋框（主管要求要明顯的 input）：32px 控制項，排在切換按鈕後面、分隔線前面；
+               兩個檢視共用一個，所以不再各放一顆關鍵字 chip -->
+          <div class="input input-sm toolbar-search">
+            <input type="text" placeholder="主機 IP / 名稱 / 弱點名稱" aria-label="關鍵字">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <span class="toolbar-sep"></span>
+          <div class="bulk-bar" id="bulkBarHost" data-view-panel="by-host">
+            <div class="bulk-lead">
+              <div class="filter-chips" style="margin:0">
+              <span class="chip setting" data-field="每頁顯示">每頁顯示：10 筆 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">10 筆</div><div>20 筆</div><div>50 筆</div><div>100 筆</div></div>
+              </span>
+              <span class="chip setting" data-field="標記">標記：全部 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">全部</div><div>列入</div><div>誤報</div><div>忽略</div></div>
+              </span>
+              <span class="chip setting" data-field="校對">校對：全部 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">全部</div><div>已校對</div><div>未校對</div></div>
+              </span>
+              </div>
+              <span class="count-note">共 7 筆 · 已選取 <span class="bulk-count">0</span> 筆</span>
+            </div>
+            <div class="bulk-actions">
+              <div class="bulk-mark">
+                <button type="button" class="btn btn-secondary btn-sm bulk-mark-toggle" disabled>標記 <i class="fa-solid fa-angle-down"></i></button>
+                <div class="dropdown">
+                  <div class="dropdown-option" data-bulk-action="fp">誤報</div>
+                  <div class="dropdown-option" data-bulk-action="ignore">忽略</div>
+                  <div class="dropdown-option" data-bulk-action="normal">列入</div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" data-bulk-action="unreviewed" disabled>標示未校對</button>
+              <button type="button" class="btn btn-primary btn-sm" data-bulk-action="reviewed" disabled><i class="fa-solid fa-check"></i>標示已校對</button>
+            </div>
+          </div>
+          <div class="bulk-bar" id="bulkBarVuln" data-view-panel="by-vuln" hidden>
+            <div class="bulk-lead">
+              <div class="filter-chips" style="margin:0">
+              <span class="chip setting" data-field="每頁顯示">每頁顯示：10 筆 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">10 筆</div><div>20 筆</div><div>50 筆</div><div>100 筆</div></div>
+              </span>
+              <span class="chip setting" data-field="標記">標記：全部 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">全部</div><div>列入</div><div>誤報</div><div>忽略</div></div>
+              </span>
+              <span class="chip setting" data-field="校對">校對：全部 <i class="fa-solid fa-sort"></i>
+                <div class="chip-menu"><div class="current">全部</div><div>已校對</div><div>未校對</div></div>
+              </span>
+              </div>
+              <span class="count-note">共 96 筆 · 已選取 <span class="bulk-count">0</span> 筆</span>
+            </div>
+            <div class="bulk-actions">
+              <div class="bulk-mark">
+                <button type="button" class="btn btn-secondary btn-sm bulk-mark-toggle" disabled>標記 <i class="fa-solid fa-angle-down"></i></button>
+                <div class="dropdown">
+                  <div class="dropdown-option" data-bulk-action="fp">誤報</div>
+                  <div class="dropdown-option" data-bulk-action="ignore">忽略</div>
+                  <div class="dropdown-option" data-bulk-action="normal">列入</div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" data-bulk-action="unreviewed" disabled>標示未校對</button>
+              <button type="button" class="btn btn-primary btn-sm" data-bulk-action="reviewed" disabled><i class="fa-solid fa-check"></i>標示已校對</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 依主機（預設）：主機=母列，弱點=獨立子表格（欄位跟母層不同，用 subrow/subtable） -->
+        <div class="rvw-view" data-view-panel="by-host">
+          <div class="table cols-fixed">
+            <table>
+              <colgroup>
+                <col style="width:44px"><col style="width:244px"><col style="width:76px"><col style="width:200px"><col style="width:92px">
+                <col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:64px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="cb-cell"><input type="checkbox"></th>
+                  <th>主機 <i class="fa-solid fa-sort"></i></th>
+                  <th class="num-col">弱點數 <i class="fa-solid fa-sort"></i></th>
+                  <th>作業系統 <i class="fa-solid fa-sort"></i></th>
+                  <th class="num-col">發生位置 <i class="fa-solid fa-sort"></i></th>
+                  <th class="num-col">緊急</th>
+                  <th class="num-col">高</th>
+                  <th class="num-col">中</th>
+                  <th class="num-col">低</th>
+                  <th class="num-col">資訊</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-group="h1">
+                  <td class="cb-cell"><button class="expander" data-toggle="h1"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.110</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">46</span></td>
+                  <td>Windows 2008 R2</td>
+                  <td class="num-col">58</td>
+                  <td class="num-col"><span class="tag tag-critical">2</span></td><td class="num-col"><span class="tag tag-danger">2</span></td><td class="num-col"><span class="tag tag-warning">6</span></td><td class="num-col"><span class="tag tag-success">1</span></td><td class="num-col"><span class="tag tag-info">47</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h1">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱 <i class="fa-solid fa-sort"></i></th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Oracle Database Unsupported Version Detection</span></td><td><span class="tag tag-gray">知識庫</span></td><td>1521/tcp</td><td><span class="tag tag-critical">緊急</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Unsupported Windows OS (remote)</span></td><td><span class="tag tag-gray">知識庫</span></td><td>445/tcp</td><td><span class="tag tag-critical">緊急</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Oracle TNS Listener Remote Poisoning</span></td><td><span class="tag tag-gray">知識庫</span></td><td>1433/tcp</td><td><span class="tag tag-danger">高</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-success">已校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h2">
+                  <td class="cb-cell"><button class="expander" data-toggle="h2"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.151</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">55</span></td>
+                  <td>Windows Server 2016</td>
+                  <td class="num-col">124</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-warning">10</span></td><td class="num-col">—</td><td class="num-col"><span class="tag tag-info">114</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h2">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">SSL Certificate Cannot Be Trusted</span></td><td><span class="tag tag-gray">知識庫</span></td><td>3389/tcp</td><td><span class="tag tag-warning">中</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h3">
+                  <td class="cb-cell"><button class="expander" data-toggle="h3"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.123</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">49</span></td>
+                  <td>Windows Server 2016</td>
+                  <td class="num-col">210</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-warning">7</span></td><td class="num-col">—</td><td class="num-col"><span class="tag tag-info">203</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h3">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">SSL Certificate Cannot Be Trusted</span></td><td><span class="tag tag-gray">知識庫</span></td><td>25/tcp</td><td><span class="tag tag-warning">中</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h4">
+                  <td class="cb-cell"><button class="expander" data-toggle="h4"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.104</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">45</span></td>
+                  <td>Windows Server 2016</td>
+                  <td class="num-col">92</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-warning">2</span></td><td class="num-col">—</td><td class="num-col"><span class="tag tag-info">90</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h4">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">SSL Certificate Cannot Be Trusted</span></td><td><span class="tag tag-gray">知識庫</span></td><td>636/tcp</td><td><span class="tag tag-warning">中</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h5">
+                  <td class="cb-cell"><button class="expander" data-toggle="h5"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.111</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">45</span></td>
+                  <td>Windows Server 2016</td>
+                  <td class="num-col">92</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-warning">2</span></td><td class="num-col">—</td><td class="num-col"><span class="tag tag-gray">90</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h5">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">SSL Certificate Cannot Be Trusted</span></td><td><span class="tag tag-gray">知識庫</span></td><td>636/tcp</td><td><span class="tag tag-warning">中</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h6">
+                  <td class="cb-cell"><button class="expander" data-toggle="h6"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.105</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">47</span></td>
+                  <td>Windows Server 2016</td>
+                  <td class="num-col">84</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-warning">2</span></td><td class="num-col">—</td><td class="num-col"><span class="tag tag-info">82</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h6">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">HSTS Missing From HTTPS Server (RFC 6797)</span></td><td><span class="tag tag-gray">原始報告</span></td><td>443/tcp</td><td><span class="tag tag-warning">中</span></td><td><span class="tag tag-info">列入</span></td><td><span class="tag tag-gray">未校對</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-group="h7">
+                  <td class="cb-cell"><button class="expander" data-toggle="h7"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+                  <td class="row-toggle">192.168.1.130</td>
+                  <td class="num-col"><span class="row-action detail row-toggle">38</span></td>
+                  <td>Windows Server 2019</td>
+                  <td class="num-col">61</td>
+                  <td class="num-col">—</td><td class="num-col">—</td><td class="num-col">—</td><td class="num-col">—</td><td class="num-col"><span class="tag tag-info">61</span></td>
+                </tr>
+                <tr class="subrow collapsed" data-child="h7">
+                  <td colspan="10">
+                    <div class="subtable">
+                      <table>
+                        <thead><tr><th class="cb-cell"></th><th>弱點名稱</th><th>內容來源</th><th>發生位置</th><th>嚴重度</th><th>標記</th><th>校對</th><th style="text-align:right">操作</th></tr></thead>
+                        <tbody>
+                          <tr><td class="cb-cell"><input type="checkbox" class="row-cb"></td><td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Common Platform Enumeration (CPE)</span></td><td><span class="tag tag-gray">自己填</span></td><td>1433/tcp</td><td><span class="tag tag-info">資訊</span></td><td><span class="tag tag-danger">誤報</span></td><td>—</td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button class="page current">1</button><button class="page">2</button><button class="page">3</button><span class="page">…</span><button class="page">43</button>
+            <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+            <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+            <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+          </div>
+        </div>
+
+        <!-- 依弱點：跨主機攤平，方便單看嚴重度／處置這類橫向排序 -->
+        <div class="rvw-view" data-view-panel="by-vuln" hidden>
+          <div class="table cols-fixed">
+            <table>
+              <colgroup><col style="width:44px"><col style="width:108px"><col><col style="width:96px"><col style="width:100px"><col style="width:92px"><col style="width:116px"><col style="width:96px"><col style="width:84px"></colgroup>
+              <thead>
+                <tr>
+                  <th class="cb-cell"><input type="checkbox"></th>
+                  <th>嚴重度 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                    <div class="col-menu"><div class="hint">欄位篩選</div>
+                      <label><input type="checkbox"><span>緊急</span></label>
+                      <label><input type="checkbox"><span>高</span></label>
+                      <label><input type="checkbox"><span>中</span></label>
+                      <label><input type="checkbox"><span>低</span></label>
+                      <label><input type="checkbox"><span>資訊</span></label>
+                    </div>
+                  </th>
+                  <th>弱點名稱 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                    <div class="col-menu"><div class="hint">關鍵字篩選</div><input class="kw" type="text" placeholder="輸入弱點名稱關鍵字"></div>
+                  </th>
+                  <th>內容來源 <i class="fa-solid fa-sort"></i></th>
+                  <th class="num-col">影響裝置數 <i class="fa-solid fa-sort"></i></th>
+                  <th class="num-col">發生位置 <i class="fa-solid fa-sort"></i></th>
+                  <th>標記 <i class="fa-solid fa-sort"></i></th>
+                  <th>校對 <i class="fa-solid fa-sort"></i></th>
+                  <th style="text-align:right">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-critical">緊急</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Oracle Database Unsupported Version Detection</span></td>
+                  <td><span class="tag tag-gray">知識庫</span></td>
+                  <td class="num-col">1</td>
+                  <td class="num-col">1</td>
+                  <td><span class="tag tag-info">列入</span></td>
+                  <td><span class="tag tag-gray">未校對</span></td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-critical">緊急</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Unsupported Windows OS (remote)</span></td>
+                  <td><span class="tag tag-gray">知識庫</span></td>
+                  <td class="num-col">1</td>
+                  <td class="num-col">1</td>
+                  <td><span class="tag tag-info">列入</span></td>
+                  <td><span class="tag tag-gray">未校對</span></td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-danger">高</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Oracle TNS Listener Remote Poisoning</span></td>
+                  <td><span class="tag tag-gray">知識庫</span></td>
+                  <td class="num-col">1</td>
+                  <td class="num-col">1</td>
+                  <td><span class="tag tag-info">列入</span></td>
+                  <td><span class="tag tag-success">已校對</span></td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-warning">中</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">SSL Certificate Cannot Be Trusted</span></td>
+                  <td><span class="tag tag-gray">知識庫</span></td>
+                  <td class="num-col">6</td>
+                  <td class="num-col">14</td>
+                  <td><span class="tag tag-info">列入</span></td>
+                  <td><span class="tag tag-gray">未校對</span></td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-warning">中</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">HSTS Missing From HTTPS Server (RFC 6797)</span></td>
+                  <td><span class="tag tag-gray">原始報告</span></td>
+                  <td class="num-col">1</td>
+                  <td class="num-col">1</td>
+                  <td><span class="tag tag-info">列入</span></td>
+                  <td><span class="tag tag-gray">未校對</span></td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+                <tr>
+                  <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                  <td><span class="tag tag-info">資訊</span></td>
+                  <td><span class="row-action detail" data-open="#reviewVuln" style="font-weight:var(--weight-regular)">Common Platform Enumeration (CPE)</span></td>
+                  <td><span class="tag tag-gray">自己填</span></td>
+                  <td class="num-col">7</td>
+                  <td class="num-col">7</td>
+                  <td><span class="tag tag-danger">誤報</span></td>
+                  <td>—</td>
+                  <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#reviewVuln">編輯</span></div></td>
+
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button class="page current">1</button><button class="page">2</button><button class="page">3</button>
+            <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+            <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+            <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= 本次報告 ================= -->
+    <section class="tab-panel" data-panel-id="report" hidden>
+
+      <ol class="stepper" style="margin-bottom:var(--space-big)">
+        <li class="step done"><span class="step-dot"><i class="fa-solid fa-check"></i></span><span class="step-label">產生報告草稿</span></li>
+        <li class="step current"><span class="step-dot">2</span><span class="step-label">下載潤飾</span></li>
+        <li class="step"><span class="step-dot">3</span><span class="step-label">上傳最終版</span></li>
+        <li class="step"><span class="step-dot">4</span><span class="step-label">送出客戶</span></li>
+      </ol>
+
+      <div class="section">
+        <div class="rp-step">① 產生報告草稿 <span class="tag tag-success">已完成</span></div>
+        <dl class="def-list" style="margin-bottom:var(--space-s)">
+          <dt>報表類型</dt><dd>複測報告</dd>
+          <dt>報告樣板</dt><dd>預設範本（依檢測類型）</dd>
+          <dt>Word 樣式</dt><dd>系統預設樣式</dd>
+          <dt>封面格式</dt><dd>報告品牌樣式</dd>
+          <dt>報告日期</dt><dd>2026/09/04</dd>
+        </dl>
+        <div class="row" style="display:flex;gap:var(--space-xs);align-items:center">
+          <button class="btn btn-primary"><i class="fa-solid fa-file-lines"></i>重新產生報告草稿</button>
+          <button class="btn btn-link">調整設定</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="rp-step">② 下載潤飾 <span class="tag tag-info">進行中</span></div>
+        <div class="dl-row">
+          <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>Word 2026/09/04 15:35 <span class="tag tag-success" style="margin-left:var(--space-xxs)">最新</span></button>
+          <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>PDF</button>
+          <button class="btn btn-secondary"><i class="fa-solid fa-download"></i>完整弱點清單 <span class="tag tag-gray" style="margin-left:var(--space-xxs)">系統自動</span></button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="rp-step">③ 上傳最終版 <span class="tag tag-gray">待處理</span></div>
+        <button class="btn btn-secondary"><i class="fa-solid fa-upload"></i>上傳最終版</button>
+      </div>
+
+    </section>
+
+    <!-- ================= 與前次比對 ================= -->
+    <section class="tab-panel" data-panel-id="compare" hidden>
+
+      <div class="diff-baseline">
+        <label>比較基準</label>
+        <div class="selector" style="min-width:220px"><span>第 1 次 · Nessus · 2026/09/03</span><i class="fa-solid fa-angle-down"></i></div>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:var(--space-m)">
+        <div class="kpi">
+          <span class="kpi-label">新增弱點</span>
+          <span class="kpi-num">0</span>
+          <span class="kpi-sub">複掃才出現、基準沒有</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">已修復弱點</span>
+          <span class="kpi-num" style="color:var(--success-500)">18</span>
+          <span class="kpi-sub">基準有、複掃已消失</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">仍存在弱點</span>
+          <span class="kpi-num is-danger">78</span>
+          <span class="kpi-sub">兩次都有</span>
+        </div>
+      </div>
+
+      <div class="card-title">複測報告建議</div>
+      <p class="help" style="margin-bottom:var(--space-s)">以弱點 port 數計算，僅含兩次都掃到的 7 台主機，跟上方弱點項目數的計算基礎不同。</p>
+      <div class="table" style="margin-bottom:var(--space-m)">
+        <table>
+          <thead>
+            <tr><th>掃描</th><th class="num-col">緊急</th><th class="num-col">高</th><th class="num-col">中</th><th class="num-col">低</th><th class="num-col">資訊</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>初掃</td><td class="num-col">2</td><td class="num-col">2</td><td class="num-col">29</td><td class="num-col">1</td><td class="num-col">672</td></tr>
+            <tr><td>複掃</td><td class="num-col">2</td><td class="num-col">2</td><td class="num-col">29</td><td class="num-col">1</td><td class="num-col">672</td></tr>
+            <tr><td>減少數量</td><td class="num-col">0</td><td class="num-col">0</td><td class="num-col">0</td><td class="num-col">0</td><td class="num-col">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="filter-chips">
+        <span class="chip setting" id="diffChip" data-field="變化">變化：全部 <i class="fa-solid fa-sort"></i>
+          <div class="chip-menu"><div class="current">全部</div><div>新增</div><div>已修復</div><div>仍存在</div></div>
+        </span>
+      </div>
+
+      <div data-view-panel="all" data-view-group="diff">
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col><col style="width:110px"><col style="width:200px"><col style="width:120px"></colgroup>
+            <thead>
+              <tr>
+                <th>弱點名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>嚴重度 <i class="fa-solid fa-sort"></i></th>
+                <th>受影響資產</th>
+                <th>變化 <i class="fa-solid fa-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Oracle Database Unsupported Version Detection</td><td><span class="tag tag-critical">緊急</span></td><td>192.168.1.110</td><td><span class="tag tag-success">已修復</span></td></tr>
+              <tr><td>Unsupported Windows OS (remote)</td><td><span class="tag tag-critical">緊急</span></td><td>192.168.1.110</td><td><span class="tag tag-danger">仍存在</span></td></tr>
+              <tr><td>Oracle TNS Listener Remote Poisoning</td><td><span class="tag tag-danger">高</span></td><td>192.168.1.110</td><td><span class="tag tag-danger">仍存在</span></td></tr>
+              <tr><td>SSL RC4 Cipher Suites Supported (Bar Mitzvah)</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.105、192.168.1.123</td><td><span class="tag tag-success">已修復</span></td></tr>
+              <tr><td>TLS Version 1.0 Protocol Detection</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.104、192.168.1.111</td><td><span class="tag tag-success">已修復</span></td></tr>
+              <tr><td>SSL Certificate Cannot Be Trusted</td><td><span class="tag tag-warning">中</span></td><td>6 台</td><td><span class="tag tag-danger">仍存在</span></td></tr>
+              <tr><td>HSTS Missing From HTTPS Server (RFC 6797)</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.105</td><td><span class="tag tag-danger">仍存在</span></td></tr>
+              <tr><td>SSL/TLS Diffie-Hellman Modulus &lt;= 1024 Bits (Logjam)</td><td><span class="tag tag-success">低</span></td><td>192.168.1.151</td><td><span class="tag tag-success">已修復</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="page current">1</button><button class="page">2</button><button class="page">3</button><span class="page">…</span><button class="page">10</button>
+          <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+          <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+          <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+        </div>
+      </div>
+
+      <div data-view-panel="added" data-view-group="diff" hidden>
+        <div class="table">
+          <table>
+            <thead><tr><th>弱點名稱 <i class="fa-solid fa-sort"></i></th><th style="width:120px">嚴重度 <i class="fa-solid fa-sort"></i></th><th style="width:220px">受影響資產</th></tr></thead>
+            <tbody><tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-circle-check" style="font-size:24px;color:var(--success-500)"></i><p style="margin-top:var(--space-xs)">沒有新增弱點</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div data-view-panel="fixed" data-view-group="diff" hidden>
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col><col style="width:110px"><col style="width:200px"><col style="width:120px"></colgroup>
+            <thead>
+              <tr>
+                <th>弱點名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>嚴重度 <i class="fa-solid fa-sort"></i></th>
+                <th>原受影響資產</th>
+                <th>複測結果 <i class="fa-solid fa-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Oracle Database Unsupported Version Detection</td><td><span class="tag tag-critical">緊急</span></td><td>192.168.1.110</td><td><span class="tag tag-success">已確認修復</span></td></tr>
+              <tr><td>SSL RC4 Cipher Suites Supported (Bar Mitzvah)</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.105、192.168.1.123</td><td><span class="tag tag-success">已確認修復</span></td></tr>
+              <tr><td>TLS Version 1.0 Protocol Detection</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.104、192.168.1.111</td><td><span class="tag tag-gray">待複測人員確認</span></td></tr>
+              <tr><td>SSL/TLS Diffie-Hellman Modulus &lt;= 1024 Bits (Logjam)</td><td><span class="tag tag-success">低</span></td><td>192.168.1.151</td><td><span class="tag tag-gray">待複測人員確認</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="page current">1</button><button class="page">2</button>
+          <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+          <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+        </div>
+      </div>
+
+      <div data-view-panel="remain" data-view-group="diff" hidden>
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col><col style="width:110px"><col style="width:200px"><col style="width:120px"></colgroup>
+            <thead>
+              <tr>
+                <th>弱點名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>嚴重度 <i class="fa-solid fa-sort"></i></th>
+                <th>受影響資產</th>
+                <th>發生位置變化 <i class="fa-solid fa-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Unsupported Windows OS (remote)</td><td><span class="tag tag-critical">緊急</span></td><td>192.168.1.110</td><td>1 → 1</td></tr>
+              <tr><td>Oracle TNS Listener Remote Poisoning</td><td><span class="tag tag-danger">高</span></td><td>192.168.1.110</td><td>1 → 1</td></tr>
+              <tr><td>SSL Certificate Cannot Be Trusted</td><td><span class="tag tag-warning">中</span></td><td>6 台</td><td>14 → <span style="color:var(--success-500)">9</span></td></tr>
+              <tr><td>HSTS Missing From HTTPS Server (RFC 6797)</td><td><span class="tag tag-warning">中</span></td><td>192.168.1.105</td><td>1 → 1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="page current">1</button><button class="page">2</button><button class="page">3</button>
+          <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+          <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+          <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+        </div>
+      </div>
+
+    </section>
+
+    <div class="sheet-footer">
+      <a class="btn btn-secondary" href="scan-jobs.html"><i class="fa-solid fa-arrow-left"></i>返回清單</a>
+      <div class="right" style="align-items:center">
+        <button class="btn btn-danger" data-open="#delScan"><i class="fa-solid fa-trash"></i>刪除</button>
+        <div class="tab-panel compare-action" data-panel-id="compare" hidden>
+          <button class="btn btn-primary"><i class="fa-solid fa-clipboard-check"></i>完成複測驗證</button>
+        </div>
+        <div class="tab-panel submit-client" data-panel-id="report" hidden>
+          <span class="help">需先上傳最終版才可送出</span>
+          <button class="btn btn-primary" disabled>送出客戶</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+</main>
+
+<!-- ================= 校對 modal（雙欄） ================= -->
+<div class="overlay" id="reviewVuln">
+  <div class="modal modal-wide">
+    <div class="modal-header" style="display:flex;align-items:center;gap:var(--space-s)">
+      <span class="tag tag-m tag-critical">緊急</span>
+      Oracle Database Unsupported Version Detection
+    </div>
+    <div class="modal-body">
+      <div class="fp-row" style="display:flex; align-items:center; gap:var(--space-s)">
+        <span style="font:var(--weight-semibold) var(--text-caption); color:var(--text-color)">標記</span>
+        <div class="choice-group" id="fpToggle" role="radiogroup" aria-label="標記">
+          <label class="radio-row"><input type="radio" name="fp" data-fp="normal" checked> 列入</label>
+          <label class="radio-row"><input type="radio" name="fp" data-fp="fp"> 誤報</label>
+          <label class="radio-row"><input type="radio" name="fp" data-fp="ignore"> 忽略</label>
+        </div>
+      </div>
+      <div class="review-grid col-split">
+
+        <!-- 左：本次檢測結果（唯讀） -->
+        <div>
+          <h4>本次檢測結果</h4>
+          <dl class="def-list is-stacked">
+            <dt>外掛編號</dt><dd>55786</dd>
+            <dt>風險分數</dt><dd>10</dd>
+            <dt>影響主機與 Port（此弱點全部）1 台 · 1 個發生位置</dt><dd>192.168.1.110 : 1521 / tcp</dd>
+            <dt>原始報告</dt><dd><span class="tag tag-gray">Critical</span> <span class="tag tag-gray">CVSS V2</span></dd>
+            <dt>摘要</dt><dd>The remote host is running an unsupported version of a database server.</dd>
+            <dt>弱點說明</dt><dd>According to its version, the installation of Oracle Database running on the remote host is no longer supported.
+
+Lack of support implies that no new security patches for the product will be released by the vendor. As a result, it is likely to contain security vulnerabilities.</dd>
+            <dt>弱點影響</dt><dd style="font-style:italic;color:var(--text-disable)">原廠未提供</dd>
+            <dt>修補建議</dt><dd>Upgrade to a version of Oracle Database that is currently supported.</dd>
+          </dl>
+        </div>
+
+        <!-- 右：知識庫條目 -->
+        <div class="kb-col" id="kbCol">
+          <h4>知識庫條目 <a class="btn btn-link" href="kb-editor.html" style="margin-left:auto">編輯知識庫 <i class="fa-solid fa-angle-right"></i></a></h4>
+          <div class="kb-off-note" id="kbOffNote" hidden></div>
+          <div class="field" style="margin-bottom:var(--space-s)">
+            <label>語系</label>
+            <div class="selector" id="kbLangSelector" style="width:100%">
+              <span>繁中</span>
+              <i class="fa-solid fa-angle-down"></i>
+              <div class="dropdown">
+                <div class="dropdown-option current">繁中</div>
+                <div class="dropdown-option">英文</div>
+                <div class="dropdown-option">日文</div>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:var(--space-xs)">
+            <label>載入版本</label>
+            <div class="selector" id="kbVerSelector" style="width:100%">
+              <span style="display:flex; align-items:center; gap:var(--space-xxs)">V3
+                <span class="tag tag-gray" style="padding:0 var(--space-xxs)">主管推薦版</span>
+                <span class="tag tag-gray" style="padding:0 var(--space-xxs)">已核可</span>
+              </span>
+              <i class="fa-solid fa-angle-down"></i>
+              <div class="dropdown">
+                <div class="dropdown-option current" data-ver="V3" data-langs="繁中">V3
+                  <span class="tag tag-gray" style="padding:0 var(--space-xxs)">主管推薦版</span>
+                  <span class="tag tag-gray" style="padding:0 var(--space-xxs)">已核可</span></div>
+                <div class="dropdown-option" data-ver="V2" data-langs="繁中">V2
+                  <span class="tag tag-gray" style="padding:0 var(--space-xxs)">內部審查版</span></div>
+                <div class="dropdown-option" data-ver="V1" data-langs="繁中,英文">V1</div>
+                <div class="dropdown-option" data-ver="none">不載入版本（自己填寫）</div>
+              </div>
+            </div>
+          </div>
+          <div class="kb-mode" id="kbMode"></div>
+
+          <div class="field" style="margin-bottom:var(--space-xs)">
+            <label>弱點說明<span class="kb-ver-label"></span></label>
+            <textarea class="input kb-field" rows="3" data-kb="desc"></textarea>
+          </div>
+          <div class="field" style="margin-bottom:var(--space-xs)">
+            <label>弱點影響<span class="kb-ver-label"></span></label>
+            <textarea class="input kb-field" rows="3" data-kb="impact"></textarea>
+          </div>
+          <div class="field" style="margin-bottom:var(--space-xs)">
+            <label>建議修補方式<span class="kb-ver-label"></span></label>
+            <textarea class="input kb-field" rows="4" data-kb="fix"></textarea>
+          </div>
+
+          <div class="card" style="margin-top:var(--space-s)">
+            <div class="card-title">校對要填的欄位</div>
+            <div class="field" style="margin-bottom:var(--space-s)">
+              <label>資料庫名稱 <span class="req">*</span></label>
+              <input class="input" placeholder="任意文字，例如 SMBv1" value="Oracle 11g（AP 主機）">
+            </div>
+            <div class="field">
+              <label>資料庫版本</label>
+              <textarea class="input" rows="2" placeholder="任意文字，可多筆，一行一筆">11.2.0.4</textarea>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:var(--space-xs)">
+            <label>代入值對照</label>
+            <dl class="def-list cols-2">
+            <dt>{host}</dt><dd>192.168.1.110</dd>
+            <dt>{plugin_id}</dt><dd>55786</dd>
+            <dt>{port}</dt><dd>1521</dd>
+            <dt>{severity}</dt><dd>緊急</dd>
+            <dt>{host_port}</dt><dd>192.168.1.110:1521</dd>
+            <dt>{cvss}</dt><dd>10.00</dd>
+            <dt>{cve}</dt><dd>—</dd>
+            <dt>{scanner}</dt><dd>Nessus</dd>
+          </dl>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-text" id="kbUnreviewBtn" data-close style="margin-right:auto" hidden>改回未校對</button>
+      <button class="btn btn-secondary" data-close data-kb-cancel>取消</button>
+      <span class="tip tip-right tip-if-disabled" id="kbDraftTip" data-tip="請先設定儲存版本方式：覆蓋現有版本、另存新版本或恢復預設">
+        <button class="btn btn-secondary" id="kbDraftBtn" data-close>儲存版本</button>
+      </span>
+      <span class="tip tip-right tip-if-disabled" id="kbDoneTip" data-tip="請先設定儲存版本方式：覆蓋現有版本、另存新版本或恢復預設">
+        <button class="btn btn-primary" id="kbDoneBtn" data-close>儲存校對</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- 確認框：校對 modal 的「恢復預設」「覆蓋現有版本」防呆（疊在校對 modal 上，小變體，破壞性紅字） -->
+<div class="overlay" id="kbConfirmReset">
+  <div class="modal" style="width:440px">
+    <div class="modal-body">
+      <p style="font:var(--weight-semibold) var(--text-body);color:var(--danger-500)">確定要恢復預設嗎？</p>
+      <p class="help">你修改過的內容會全部捨棄，變回 <span data-kb-ver>V3</span> 原本的內容，無法復原。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-danger" data-close data-kb-confirm="reset">恢復預設</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="kbConfirmOverwrite">
+  <div class="modal" style="width:440px">
+    <div class="modal-body">
+      <p style="font:var(--weight-semibold) var(--text-body);color:var(--danger-500)">確定要覆蓋 <span data-kb-ver>V3</span> 嗎？</p>
+      <p class="help">儲存時，知識庫的 <span data-kb-ver>V3</span> 會被你修改後的內容取代，之後所有用到這個版本的地方都會變成新內容。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-danger" data-close data-kb-confirm="overwrite">覆蓋現有版本</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認框：校對 modal 離開時（取消／點遮罩）尚有未儲存的修改 -->
+<div class="overlay" id="kbConfirmDiscard">
+  <div class="modal" style="width:440px">
+    <div class="modal-body">
+      <p style="font:var(--weight-semibold) var(--text-body);color:var(--danger-500)">確定要放棄這些修改嗎？</p>
+      <p class="help">還沒儲存，離開後這次修改的內容不會保留。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>繼續編輯</button>
+      <button class="btn btn-danger" data-kb-discard>放棄修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認框：刪除掃描 -->
+<div class="overlay" id="delScan">
+  <div class="modal" style="width:440px">
+    <div class="modal-body">
+      <p style="font:var(--weight-semibold) var(--text-body);color:var(--danger-500)">確定要刪除這個掃描作業嗎？</p>
+      <p class="help">刪除後，這次掃描的弱點校對與已產生的報告草稿都會一併移除，無法復原。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-danger" data-close>刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="scan-shell.js"></script>
+<script src="../assets/kit.js"></script>
+<script>
+  /* 校對 modal：載入知識庫版本後三格是灰底、可直接點欄位打字；內容一跟原版不一樣，
+     上方灰字列就變成處理方式選項列（恢復預設／覆蓋現有版本／另存新版本），沒選之前
+     「標示已校對」disabled。選「不載入版本」則是空白欄位、直接填、不用選處理方式。
+     kit.js 的 .selector 監聽會把選中項目的文字塞回選單第一個 span，這支監聽在 kit.js 之後
+     跑，選完由 kbRender 把選單顯示換回帶簡稱 tag 的版本。 */
+  var KB_VERSIONS = {
+    V3: { tags: ['主管推薦版', '已核可'],
+      desc: '因版本已不受支援，原廠不再發布安全修補，系統長期暴露於已知漏洞風險。',
+      impact: '攻擊者可利用已公開但未修補的漏洞取得資料庫存取權，導致資料外洩或服務中斷。',
+      fix: '{資料庫名稱} 建議評估升級至目前支援的 Oracle 資料庫版本。\n\n參考網址：http://www.nessus.org/u?ccd068d1' },
+    V2: { tags: ['內部審查版'],
+      desc: '資料庫版本已終止支援，原廠不再提供安全更新。',
+      impact: '可能遭利用已知漏洞入侵，影響資料庫機密性與可用性。',
+      fix: '請升級 {資料庫名稱} 至原廠仍提供支援的版本。' },
+    V1: { tags: [],
+      desc: '此版本的資料庫已停止支援。',
+      impact: '存在未修補的安全風險。',
+      fix: '請升級至受支援的版本。' }
+  };
+  /* 語系可用哪些版本（跟 kb-editor.html 的版本矩陣demo一致：繁中 V3/V2/V1、英文只有 V1、
+     日文目前沒有任何版本——刻意留一個空版本語系示範空狀態，Aimi 已確認要有這個示範）。 */
+  var KB_LANGS = { '繁中': ['V3', 'V2', 'V1'], '英文': ['V1'], '日文': [] };
+  var kbState = { ver: 'V3', choice: null, lang: '繁中', noVersion: false, blankSave: 'once' };
+  var kbFpState = 'normal';   // 誤報／忽略：normal／fp／ignore，footer 的 #fpToggle
+  var kbFields = document.querySelectorAll('.kb-field');
+  var kbModeEl = document.getElementById('kbMode');
+  /* footer 現在有兩組 .btn-primary（誤報／忽略切換的「正常」預設選中、標示已校對），
+     不能再用 class 選，改用 id 精準指到儲存按鈕本身。 */
+  var kbDoneBtn = document.getElementById('kbDoneBtn');
+  var kbDraftBtn = document.getElementById('kbDraftBtn');
+  var kbUnreviewBtn = document.getElementById('kbUnreviewBtn');
+  var kbReviewed = false;   /* 目前打開的這筆是不是已校對（打開時從列表那一列的「校對」欄讀） */
+  var kbRow = null;         /* 目前打開的那一列，儲存後回寫列表的標記／校對欄（demo） */
+  /* 列表每一列倒數第 3、2 欄固定是「標記」「校對」 */
+  function kbRowCells() { return kbRow ? { mark: kbRow.children[kbRow.children.length - 3], review: kbRow.children[kbRow.children.length - 2] } : null; }
+  var kbDraftTip = document.getElementById('kbDraftTip');
+  var kbDoneTip = document.getElementById('kbDoneTip');
+  /* 必填欄位：校對跳窗裡 label 帶 .req 的欄位（目前是「資料庫名稱」），標示已校對前都要填 */
+  function kbRequiredMissing() {
+    var missing = [];
+    document.querySelectorAll('#kbCol .field').forEach(function (f) {
+      if (!f.querySelector('label .req')) return;
+      var inp = f.querySelector('.input');
+      if (inp && !inp.value.trim()) missing.push(f.querySelector('label').textContent.replace('*', '').trim());
+    });
+    return missing;
+  }
+  var kbTagHtml = function (t) {
+    return '<span class="tag tag-gray" style="padding:0 var(--space-xxs)">' + t + '</span>';
+  };
+  function kbIsDirty() {
+    if (kbState.ver === 'none') return false;
+    return Array.prototype.some.call(kbFields, function (f) { return f.value !== KB_VERSIONS[kbState.ver][f.dataset.kb]; });
+  }
+  /* 離開（取消／點遮罩）前要防呆的範圍比「能不能按標示已校對」更寬：不載入版本時打了字
+     也算有東西會不見，即使這個狀態下 kbIsDirty() 回傳 false（它只管跟知識庫版本的差異）。 */
+  function kbHasUnsavedWork() {
+    if (kbState.ver === 'none') {
+      return Array.prototype.some.call(kbFields, function (f) { return f.value.trim() !== ''; });
+    }
+    return kbIsDirty();
+  }
+  function kbRender() {
+    var blank = kbState.ver === 'none';
+    var dirty = kbIsDirty();
+    var saveas = dirty && kbState.choice === 'saveas';
+    var verLabel = blank ? '' : '（' + (saveas ? '新版本' : kbState.ver) + '）';
+    document.querySelector('#kbVerSelector > span').innerHTML =
+      kbState.noVersion ? kbState.lang + ' 尚無版本'
+      : blank ? '不載入版本（自己填寫）'
+      : saveas ? '新版本'
+      : kbState.ver + KB_VERSIONS[kbState.ver].tags.map(kbTagHtml).join('');
+    document.querySelectorAll('.kb-ver-label').forEach(function (el) { el.textContent = verLabel; });
+    kbFields.forEach(function (f) { f.placeholder = blank ? '自己填寫' : ''; });
+    var html;
+    if (blank) {
+      if (kbState.noVersion) {
+        html = '<div class="kb-mode-text"><i class="fa-solid fa-circle-info"></i>' + kbState.lang
+          + ' 尚無知識庫版本，可直接填寫（僅用於這次）或到「編輯知識庫」新增</div>';
+      } else {
+        var bOpts = [['once', '只用這次'], ['saveas', '另存新版本']];
+        html = '<div class="kb-mode-text"><i class="fa-solid fa-pen"></i>自己填寫</div>'
+          + '<div class="choice-group" role="radiogroup" aria-label="儲存方式">' + bOpts.map(function (o) {
+            return '<label class="radio-row"><input type="radio" name="kbBlankSave" data-kb-blank="' + o[0] + '"'
+              + (kbState.blankSave === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>';
+          }).join('') + '</div>';
+      }
+    } else if (!dirty) {
+      html = '<div class="kb-mode-text">內容為 ' + kbState.ver + ' 知識庫原文，修改後需選擇處理方式</div>';
+    } else {
+      var opts = [['reset', '恢復預設'], ['overwrite', '覆蓋現有版本'], ['saveas', '另存新版本']];
+      /* 選了處理方式之後不再顯示說明文字，只留選項列（選中的那顆是 primary） */
+      html = (kbState.choice ? '' : '<div class="kb-mode-text is-pending"><i class="fa-solid fa-pen"></i>你修改了 ' + kbState.ver + ' 的內容，請選擇處理方式（選完才能儲存）</div>')
+        + '<div class="choice-group" role="radiogroup" aria-label="處理方式">' + opts.map(function (o) {
+          return '<label class="radio-row"><input type="radio" name="kbChoice" data-kb-choice="' + o[0] + '"'
+            + (kbState.choice === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>';
+        }).join('') + '</div>';
+    }
+    var off = kbFpState !== 'normal';
+    kbModeEl.innerHTML = off ? '' : html;
+    /* 列入：「儲存版本」只存版本內容、不動校對狀態；「儲存並標示為已校對」另外要求必填欄位都填了。
+       兩顆都要先選好處理方式（內容改過的話）。誤報／忽略：只剩一顆「儲存」，沒有校對狀態可標。 */
+    var needsChoice = !off && dirty && !kbState.choice;
+    var missing = off ? [] : kbRequiredMissing();
+    kbDraftTip.hidden = off;
+    kbUnreviewBtn.hidden = off || !kbReviewed;
+    kbDraftBtn.disabled = needsChoice;
+    kbDoneBtn.textContent = off ? '儲存' : '儲存校對';
+    kbDoneBtn.disabled = needsChoice || missing.length > 0;
+    kbDoneTip.dataset.tip = needsChoice
+      ? '請先設定儲存版本方式：覆蓋現有版本、另存新版本或恢復預設'
+      : '請先填寫必填欄位：' + missing.join('、');
+  }
+  function kbLoadText() {
+    kbFields.forEach(function (f) { f.value = kbState.ver === 'none' ? '' : KB_VERSIONS[kbState.ver][f.dataset.kb]; });
+  }
+  function kbSetVersion(ver) {
+    kbState.ver = ver;
+    kbState.choice = null;
+    if (ver === 'none') kbState.blankSave = 'once';
+    kbLoadText();
+    kbRender();
+  }
+  /* 切語系：只有選到的語系有的版本才留在下拉裡，沒有版本時強制落到「不載入版本」並
+     顯示空狀態說明（見上方 kbRender 的 kbState.noVersion 分支）。 */
+  function kbApplyLang(lang) {
+    kbState.lang = lang;
+    var avail = KB_LANGS[lang] || [];
+    document.querySelectorAll('#kbVerSelector .dropdown-option[data-ver]').forEach(function (o) {
+      if (o.dataset.ver === 'none') return;
+      o.hidden = avail.indexOf(o.dataset.ver) === -1;
+    });
+    kbState.noVersion = avail.length === 0;
+    kbSetVersion(kbState.noVersion ? 'none' : avail[0]);
+  }
+  function kbRenderFp() {
+    document.querySelectorAll('#fpToggle [data-fp]').forEach(function (r) {
+      r.checked = r.dataset.fp === kbFpState;
+    });
+    var off = kbFpState !== 'normal';
+    var col = document.getElementById('kbCol');
+    col.querySelectorAll('.selector').forEach(function (el) { el.classList.toggle('is-disabled', off); });
+    col.querySelectorAll('textarea, input').forEach(function (el) { el.disabled = off; });
+    var note = document.getElementById('kbOffNote');
+    note.hidden = !off;
+    note.textContent = off ? '已標記為' + (kbFpState === 'fp' ? '誤報' : '忽略') + '，不會出現在報告中，不需填寫' : '';
+    kbRender();
+  }
+  document.querySelectorAll('#kbCol .field').forEach(function (f) {
+    if (f.querySelector('label .req') && f.querySelector('.input')) f.querySelector('.input').addEventListener('input', kbRender);
+  });
+  /* demo：按儲存類的按鈕後，把結果寫回列表那一列（標記／校對欄），看得出狀態怎麼變 */
+  kbDoneBtn.addEventListener('click', function () {
+    var rc = kbRowCells(); if (!rc) return;
+    if (kbFpState === 'normal') {
+      rc.mark.innerHTML = '<span class="tag tag-info">列入</span>';
+      rc.review.innerHTML = '<span class="tag tag-success">已校對</span>';
+    } else {
+      rc.mark.innerHTML = kbFpState === 'fp' ? '<span class="tag tag-danger">誤報</span>' : '<span class="tag tag-gray">忽略</span>';
+      rc.review.textContent = '—';
+    }
+  });
+  kbUnreviewBtn.addEventListener('click', function () {
+    var rc = kbRowCells(); if (rc) rc.review.innerHTML = '<span class="tag tag-gray">未校對</span>';
+  });
+  kbFields.forEach(function (f) {
+    f.addEventListener('input', function () {
+      if (!kbIsDirty()) kbState.choice = null;
+      kbRender();
+    });
+  });
+  /* 原生 radio 靠 change 事件，不是 click——鍵盤方向鍵切選項也要收到 */
+  document.getElementById('fpToggle').addEventListener('change', function (e) {
+    var r = e.target.closest('[data-fp]');
+    if (r) { kbFpState = r.dataset.fp; kbRenderFp(); }
+  });
+  /* 離開防呆（取消／點遮罩）要在 kit.js 的關閉監聽之前攔下來，用 capture 階段 +
+     stopPropagation，不管 kit.js 的 script 是先載入還是後載入都能攔到。標示已校對
+     不在攔截範圍內（沒有 data-kb-cancel），按它不算「放棄」。 */
+  document.addEventListener('click', function (e) {
+    var cancel = e.target.closest('#reviewVuln [data-kb-cancel]');
+    var backdrop = e.target.id === 'reviewVuln';
+    if (!cancel && !backdrop) return;
+    if (!kbHasUnsavedWork()) return;
+    e.stopPropagation();
+    e.preventDefault();
+    document.getElementById('kbConfirmDiscard').classList.add('open');
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-kb-discard]')) {
+      document.getElementById('kbConfirmDiscard').classList.remove('open');
+      document.getElementById('reviewVuln').classList.remove('open');
+      return;
+    }
+    var opt = e.target.closest('#kbVerSelector .dropdown-option');
+    if (opt) { kbSetVersion(opt.dataset.ver); return; }
+    var langOpt = e.target.closest('#kbLangSelector .dropdown-option');
+    if (langOpt) { kbApplyLang(langOpt.textContent.trim()); return; }
+    var ch = e.target.closest('[data-kb-choice]');
+    if (ch) {
+      var c = ch.dataset.kbChoice;
+      /* 恢復預設（丟掉已改的字）、覆蓋現有版本（改到共用的知識庫）都先跳確認框；
+         已經選著覆蓋時再點一次覆蓋不用重問 */
+      if (c === 'reset' || (c === 'overwrite' && kbState.choice !== 'overwrite')) {
+        document.querySelectorAll('[data-kb-ver]').forEach(function (el) { el.textContent = kbState.ver; });
+        document.getElementById(c === 'reset' ? 'kbConfirmReset' : 'kbConfirmOverwrite').classList.add('open');
+        e.preventDefault();   /* radio 先不要打勾，等確認框按下去才真的切換 */
+        return;
+      }
+      kbState.choice = c;
+      kbRender();
+      return;
+    }
+    var bch = e.target.closest('[data-kb-blank]');
+    if (bch) { kbState.blankSave = bch.dataset.kbBlank; kbRender(); return; }
+    var ok = e.target.closest('[data-kb-confirm]');
+    if (ok) {
+      if (ok.dataset.kbConfirm === 'reset') { kbState.choice = null; kbLoadText(); }
+      else kbState.choice = 'overwrite';
+      kbRender();
+      return;
+    }
+    /* 每次打開校對 modal 都重置：語系回繁中、誤報／忽略回正常 */
+    if (e.target.closest('[data-open="#reviewVuln"]')) {
+      kbRow = e.target.closest('tr');
+      var rc = kbRowCells();
+      kbReviewed = !!rc && rc.review.textContent.trim() === '已校對';
+      var langSel = document.getElementById('kbLangSelector');
+      langSel.querySelectorAll('.dropdown-option').forEach(function (o) {
+        o.classList.toggle('current', o.textContent.trim() === '繁中');
+      });
+      langSel.querySelector(':scope > span').textContent = '繁中';
+      kbApplyLang('繁中');
+      kbFpState = 'normal';
+      kbRenderFp();
+    }
+  });
+  kbApplyLang('繁中');
+  kbRenderFp();
+  /* 初掃沒有前次可比、也沒有複測可驗證：data-scan-type="initial" 時把「與前次比對」分頁
+     的按鈕整個藏起來（連點都點不到，不是切過去看到空狀態），頁尾「完成複測驗證」跟著藏
+     ——它是靠 compare 分頁 active 才顯示的 .tab-panel，分頁進不去它就一直是 hidden。
+     本頁示範資料改成複掃 第 2 次（data-scan-type="rescan"），所以目前看到的是正常顯示的
+     樣子；要看初掃隱藏後的長相，把 body 的 data-scan-type 改成 "initial" 就好。 */
+  if (document.body.dataset.scanType === 'initial') {
+    var compareTab = document.querySelector('.page-tab[data-panel="compare"]');
+    if (compareTab) compareTab.style.display = 'none';
+  }
+  /* 支援 scan-detail.html#compare 直接開到「與前次比對」（掃描作業列表的「比對初測」連結用） */
+  var initTab = document.querySelector('.page-tab[data-panel="' + location.hash.slice(1) + '"]');
+  if (initTab) initTab.click();
+
+  /* 批次操作：window.kbBulkSetup（算已選幾筆、鎖解鎖按鈕、開關「標記」選單、示範清空選取）
+     跟母子連動（.cb-cell + .row-cb + data-group/data-child，含巢狀 subtable）都已收進
+     kit.js 正式版（commit 01ff01a），本頁只保留呼叫，見頁面註解第 53 條。 */
+  kbBulkSetup('[data-view-panel="by-host"] .table', 'bulkBarHost');
+  kbBulkSetup('[data-view-panel="by-vuln"] .table', 'bulkBarVuln');
+
+  /* 與前次比對的「變化」chip：kit.js 只負責更新 chip 文字，這裡依選項顯示對應的那張表（示範用）。 */
+  var DIFF_PANELS = { '全部': 'all', '新增': 'added', '已修復': 'fixed', '仍存在': 'remain' };
+  document.getElementById('diffChip').addEventListener('click', function (e) {
+    var opt = e.target.closest('.chip-menu div');
+    if (!opt) return;
+    document.querySelectorAll('[data-view-group="diff"][data-view-panel]').forEach(function (p) {
+      p.hidden = p.dataset.viewPanel !== DIFF_PANELS[opt.textContent.trim()];
+    });
+  });
+</script>
+</body>
+</html>

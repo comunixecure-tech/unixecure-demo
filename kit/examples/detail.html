@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAVEN｜告警規則詳細資訊</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  /* 本頁專屬：header 標題列（標題 + 狀態 tag + 右側 meta） */
+  .detail-head { display: flex; align-items: center; gap: var(--space-s); margin-bottom: var(--space-xs); }
+  .detail-head h1 { font: var(--weight-semibold) var(--text-heading); }
+</style>
+</head>
+<body data-page="detail">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <div class="detail-head">
+      <h1>KEV 漏洞出現</h1>
+    </div>
+
+    <div class="page-tabs">
+      <button class="page-tab active" data-panel="content">規則內容</button>
+      <button class="page-tab" data-panel="log">觸發紀錄</button>
+    </div>
+
+    <!-- ===== 規則內容 ===== -->
+    <section class="tab-panel" data-panel-id="content">
+
+      <div class="advice-card">
+        <span class="tag tag-l tag-info">調整</span>
+        <div>
+          <div class="advice-title">縮小監控對象範圍</div>
+          <div class="advice-desc">目前套用全部 1,204 台資產，近 30 天有 6 台產生 90% 以上的觸發，建議改成指定資產群組以減少雜訊</div>
+        </div>
+        <a class="btn btn-sm btn-secondary advice-action" href="edit.html">前往 <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="advice-card">
+        <span class="tag tag-l tag-warning">注意</span>
+        <div>
+          <div class="advice-title">靜音時段僅降級為每日彙整</div>
+          <div class="advice-desc">符合條件的事件不會即時通知，會合併在隔天 08:00 的彙整信</div>
+        </div>
+      </div>
+
+      <div class="col-split main-side">
+        <dl class="def-list">
+          <dt>規則 ID</dt>       <dd>ALR-000142</dd>
+          <dt>監控對象</dt>       <dd>全部資產 <span class="badge">1,204</span></dd>
+          <dt>觸發邏輯</dt>       <dd>2 項條件全部符合</dd>
+          <dt>嚴重程度</dt>       <dd><span class="tag tag-m tag-critical">嚴重</span></dd>
+          <dt>狀態</dt>           <dd><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></dd>
+          <dt>通知管道</dt>       <dd>Email、Slack</dd>
+          <dt>靜音時段</dt>       <dd>每日 00:00–06:00（僅降級為每日彙整）</dd>
+          <dt>建立者</dt>         <dd>系統預設規則</dd>
+          <dt>建立時間</dt>       <dd>2025/11/12 09:03</dd>
+          <dt>最後修改</dt>       <dd>2026/09/05 14:20　王小明 Peter</dd>
+          <dt>說明</dt>           <dd>當資產上出現的漏洞被列入 CISA KEV 目錄，且 EPSS 分數達門檻時立即告警，用於優先處理實際被利用中的漏洞。</dd>
+        </dl>
+
+        <div>
+          <div class="section-sub">參考資料</div>
+          <div class="link-list">
+            <a class="ext" href="#">CISA Known Exploited Vulnerabilities 目錄</a>
+            <a class="ext" href="#">FIRST EPSS 分數說明</a>
+            <a href="#">內部處理 SOP：KEV 漏洞應變流程</a>
+            <a href="#">關聯資產清單（12 台受影響）</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="kpi-row">
+          <div class="kpi">
+            <span class="kpi-label">近 30 天觸發</span>
+            <div class="kpi-line"><span class="kpi-num is-danger">7</span><span class="kpi-sub">上一期 4 次</span></div>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">最近一次觸發</span>
+            <div class="kpi-line"><span class="kpi-num">2 天前</span><span class="kpi-sub">2026/09/06 03:11</span></div>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">通知成功率</span>
+            <div class="kpi-line"><span class="kpi-num">100%</span><span class="kpi-sub">7 / 7 則送達</span></div>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">平均處理時長</span>
+            <div class="kpi-line"><span class="kpi-num is-warning">18 小時</span><span class="kpi-sub">目標 24 小時內</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 關聯 Section 1：觸發條件（子欄位跟母層不同 → 有子標頭） -->
+      <div class="section">
+        <div class="section-title">觸發條件</div>
+        <div class="count-summary">
+          <span class="total">共 2 項條件</span>
+          <span class="tag tag-gray">全部符合</span>
+        </div>
+        <div class="table cols-fixed">
+          <table>
+            <colgroup>
+              <col style="width:56px">
+              <col>
+              <col style="width:30%">
+              <col style="width:80px">
+              <col style="width:120px">
+              <col style="width:120px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="cb-cell"></th>
+                <th>條件名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>資料來源 <i class="fa-solid fa-sort"></i></th>
+                <th>比較</th>
+                <th>門檻</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-group="c1">
+                <td class="cb-cell"><button class="expander" data-toggle="c1"><i class="fa-solid fa-angle-right"></i></button></td>
+                <td>含 KEV 標記</td>
+                <td>CISA KEV</td>
+                <td>=</td>
+                <td>是</td>
+                <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action" data-open="#editCondition">編輯</span><span class="row-action danger">刪除</span></div></td>
+              </tr>
+              <!-- 展開列：只有一筆補充資料 → 兩欄定義列表，不做子表頭 -->
+              <tr class="subrow collapsed" data-child="c1">
+                <td colspan="6">
+                  <div class="subrow-body">
+                    <dl class="def-list cols-2">
+                      <dt>參數</dt><dd>比對來源清單更新頻率</dd>
+                      <dt>運算子</dt><dd>—</dd>
+                      <dt>值</dt><dd>每 6 小時</dd>
+                    </dl>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cb-cell"></td>
+                <td>EPSS 分數</td>
+                <td>FIRST EPSS</td>
+                <td>≥</td>
+                <td>88%</td>
+                <td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail" data-open="#condParams">參數</span><span class="row-action action" data-open="#editCondition">編輯</span><span class="row-action danger">刪除</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 關聯 Section 2：通知對象（標題列右側帶動作） -->
+      <div class="section">
+        <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+          通知對象
+          <button class="btn btn-secondary"><i class="fa-solid fa-plus"></i>新增對象</button>
+        </div>
+        <div class="count-summary">
+          <span class="total">共 3 位</span>
+        </div>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th>名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>管道 <i class="fa-solid fa-sort"></i></th>
+                <th>接收設定</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>資安維運群組</td><td>Slack</td><td>#sec-alerts 頻道</td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action">編輯</span><span class="row-action danger">移除</span></div></td></tr>
+              <tr><td>王小明 Peter</td><td>Email</td><td>peter.wang@unixecure.com</td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action">編輯</span><span class="row-action danger">移除</span></div></td></tr>
+              <tr><td>值班手機</td><td>簡訊</td><td>+886 9•• ••• 210（僅嚴重）</td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action action">編輯</span><span class="row-action danger">移除</span></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 關聯 Section 3：處理歷程（水平時間軸） -->
+      <div class="section">
+        <div class="section-title">處理歷程</div>
+        <ol class="timeline-h">
+          <li><div class="tl-action">建立規則</div><div class="tl-who">系統</div><div class="tl-time">2025/11/12 09:03</div></li>
+          <li><div class="tl-action">調整 EPSS 門檻</div><div class="tl-who">王小明 Peter</div><div class="tl-time">2026/09/05 14:20</div></li>
+          <li><div class="tl-action">同意調整</div><div class="tl-who">林佳蓉</div><div class="tl-time">2026/09/05 15:02</div></li>
+          <li><div class="tl-action">規則啟用</div><div class="tl-who">王小明 Peter</div><div class="tl-time">2026/09/05 15:10</div></li>
+        </ol>
+      </div>
+
+      <!-- 關聯 Section 3：異動註記（Note thread） -->
+      <div class="section">
+        <div class="section-title">異動註記</div>
+        <div class="note-thread">
+          <div class="note">
+            <span class="avatar">王</span>
+            <span class="note-meta"><b>王小明 Peter</b>　2026/09/05 14:20</span>
+            <p class="note-body">EPSS 門檻由 90% 下調到 88%，涵蓋近期兩起實際被利用但分數略低的案例。</p>
+          </div>
+          <div class="note reply">
+            <span class="avatar">林</span>
+            <span class="note-meta"><b>林佳蓉</b>　2026/09/05 15:02</span>
+            <p class="note-body">同意，這兩起如果晚一天處理就會中招。</p>
+          </div>
+          <div class="note">
+            <span class="avatar">系</span>
+            <span class="note-meta"><b>系統</b>　2025/11/12 09:03</span>
+            <p class="note-body">規則由系統預設範本建立。</p>
+          </div>
+        </div>
+        <div class="note-compose">
+          <input class="input" placeholder="新增一則註記">
+          <button class="btn btn-primary">送出</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== 觸發紀錄 ===== -->
+    <section class="tab-panel" data-panel-id="log" hidden>
+      <div class="count-summary">
+        <span class="total">近 30 天 7 筆</span>
+        <span class="tag tag-danger">已處理 5</span>
+        <span class="tag tag-warning">處理中 2</span>
+      </div>
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>觸發時間 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i></th>
+              <th>觸發資產 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                <div class="col-menu"><div class="hint">關鍵字篩選</div><input class="kw" type="text" placeholder="輸入資產名稱"></div>
+              </th>
+              <th>命中條件 <i class="fa-solid fa-sort"></i></th>
+              <th>通知結果 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+                <div class="col-menu"><div class="hint">欄位篩選</div>
+                  <label><input type="checkbox"><span>已送達</span></label>
+                  <label><input type="checkbox"><span>部分失敗</span></label>
+                </div>
+              </th>
+              <th>處理狀態 <i class="fa-solid fa-sort"></i></th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>2026/09/06 03:11</td><td>web-prod-07</td><td>KEV + EPSS 92%</td><td><span class="tag tag-success">已送達</span></td><td><span class="tag tag-warning">處理中</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail">查看</span></div></td></tr>
+            <tr><td>2026/09/04 22:48</td><td>db-core-02</td><td>KEV + EPSS 89%</td><td><span class="tag tag-success">已送達</span></td><td><span class="tag tag-warning">處理中</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail">查看</span></div></td></tr>
+            <tr><td>2026/08/30 11:05</td><td>vpn-gw-01</td><td>KEV + EPSS 95%</td><td><span class="tag tag-success">已送達</span></td><td><span class="tag tag-success">已處理</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail">查看</span></div></td></tr>
+            <tr><td>2026/08/25 08:33</td><td>web-prod-03</td><td>KEV + EPSS 90%</td><td><span class="tag tag-danger">部分失敗</span></td><td><span class="tag tag-success">已處理</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail">查看</span></div></td></tr>
+            <tr><td>2026/08/19 17:20</td><td>file-srv-04</td><td>KEV + EPSS 88%</td><td><span class="tag tag-success">已送達</span></td><td><span class="tag tag-success">已處理</span></td><td><div class="row-actions" style="justify-content:flex-end"><span class="row-action detail">查看</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="page current">1</button>
+        <button class="page">2</button>
+        <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+        <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+        <span class="jump">跳至 <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span> 頁</span>
+      </div>
+    </section>
+
+    <div class="sheet-footer">
+      <a class="btn btn-secondary" href="list.html"><i class="fa-solid fa-arrow-left"></i>返回列表</a>
+      <div class="right">
+        <button class="btn btn-danger">停用規則</button>
+        <a class="btn btn-primary" href="edit.html"><i class="fa-solid fa-pen"></i>編輯</a>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+</main>
+
+<!-- Drawer: 只是看資料（有表格 → 寬 955），底部只有「關閉」 -->
+<div class="overlay" id="condParams" style="justify-content:flex-end">
+  <div class="drawer drawer-wide">
+    <div class="drawer-header">
+      EPSS 分數的參數
+      <button class="close" data-close><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="table">
+        <table>
+          <thead><tr><th>參數</th><th>運算子</th><th>值</th></tr></thead>
+          <tbody>
+            <tr><td>分數計算基準</td><td>=</td><td>當日快照</td></tr>
+            <tr><td>缺分數時的處置</td><td>=</td><td>視為未達標</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" data-close>關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 編輯單一觸發條件（內層小資訊才用跳窗） -->
+<div class="overlay" id="editCondition">
+  <div class="modal">
+    <div class="modal-header">編輯觸發條件</div>
+    <div class="modal-body">
+      <div class="field">
+        <label>條件名稱 <span class="req">*</span></label>
+        <input class="input" value="EPSS 分數">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>資料來源</label>
+          <div class="selector"><span>FIRST EPSS</span><i class="fa-solid fa-angle-down"></i></div>
+        </div>
+        <div class="field">
+          <label>比較</label>
+          <div class="selector"><span>≥</span><i class="fa-solid fa-angle-down"></i></div>
+        </div>
+        <div class="field">
+          <label>門檻</label>
+          <input class="input" value="88%">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-primary" data-close>儲存</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/shell.js"></script>
+<script src="assets/kit.js"></script>
+</body>
+</html>

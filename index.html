@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>uniXecure 產品 Demo</title>
+<link rel="stylesheet" href="kit/tokens.css">
+<link rel="stylesheet" href="kit/examples/assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  .wrap { max-width: 960px; margin: 56px auto; padding: 0 var(--space-m); }
+  h1 { font: var(--weight-semibold) var(--text-heading); margin-bottom: var(--space-xs); }
+  .lede { color: var(--text-disable); font: var(--weight-regular) var(--text-caption); margin-bottom: var(--space-big); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-m); }
+  .product { background: var(--bg-default); border: 1px solid var(--border-default); border-radius: var(--radius-card); padding: var(--space-l); display: flex; flex-direction: column; gap: var(--space-s); }
+  .product h2 { font: var(--weight-semibold) var(--text-title); display: flex; align-items: center; gap: var(--space-s); }
+  .product p { color: var(--text-disable); font: var(--weight-regular) var(--text-caption); }
+  .product ul { list-style: none; display: flex; flex-direction: column; gap: var(--space-xs); margin-top: var(--space-xs); }
+  .product li a { display: flex; align-items: center; gap: var(--space-s); padding: var(--space-xs) 0; font: var(--weight-regular) var(--text-body); color: var(--text-link); }
+  .product li a:hover { text-decoration: underline; }
+  .product li small { margin-left: auto; color: var(--text-disable); font: var(--weight-regular) var(--text-caption2); }
+  .product.is-soon { background: var(--bg-surface); border-style: dashed; }
+  .foot { margin-top: var(--space-big); color: var(--text-disable); font: var(--weight-regular) var(--text-caption2); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>uniXecure 產品 Demo</h1>
+  <p class="lede">各產品的可操作原型與設計系統範例，畫面上的資料皆為展示用假資料</p>
+
+  <div class="grid">
+    <section class="product">
+      <h2>RAVEN <span class="tag tag-info">原型</span></h2>
+      <p>暴險情資平台。深色霓虹風，含 3D 主視覺與關聯圖，由前端持續調整，目前放的是 11 月 9 日的版本</p>
+      <ul>
+        <li><a href="raven/index.html">資產狀態總覽<small>儀表板</small></a></li>
+        <li><a href="raven/dashboard-a.html">主儀表板 A 版<small>儀表板</small></a></li>
+        <li><a href="raven/query.html">自然語言查詢<small>KF05-01</small></a></li>
+        <li><a href="raven/correlation.html">暴險關聯圖<small>KF03-01</small></a></li>
+        <li><a href="raven/epss.html">EPSS 機率分析<small>KF04-03</small></a></li>
+        <li><a href="raven/cve.html?id=CVE-2024-3094">關鍵暴險詳情<small>KF04-02</small></a></li>
+        <li><a href="raven/device.html">設備曝險詳情<small>3D</small></a></li>
+      </ul>
+    </section>
+
+    <section class="product is-soon">
+      <h2>HEIS <span class="tag tag-gray">建置中</span></h2>
+      <p>設計稿已完成，Demo 頁面整理中，預計用 uniXecure UI Kit 重新組出主要流程</p>
+    </section>
+
+    <section class="product">
+      <h2>設計系統 <span class="tag tag-success">UI Kit</span></h2>
+      <p>uniXecure UI Kit 的頁型範例，包含列表、詳情、編輯與儀表板，另有 VulnEye 掃描系統頁面</p>
+      <ul>
+        <li><a href="kit/examples/index.html">範例導覽<small>入口</small></a></li>
+        <li><a href="kit/examples/dashboard.html">儀表板</a></li>
+        <li><a href="kit/examples/list.html">列表頁</a></li>
+        <li><a href="kit/examples/detail.html">詳情頁</a></li>
+        <li><a href="kit/examples/edit.html">新增／編輯頁</a></li>
+        <li><a href="kit/examples/scan/scan-jobs.html">VulnEye 掃描任務</a></li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="foot">這是階段性展示，內容隨設計與開發進度更新<br>本頁不開放搜尋引擎收錄</p>
+</div>
+</body>
+</html>

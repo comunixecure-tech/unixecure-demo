@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAVEN｜告警設定</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+</head>
+<body data-page="list">
+
+<main class="content" hidden>
+  <div class="sheet">
+    <div class="page-head">
+      <div class="page-head-row">
+        <h1>告警設定</h1>
+        <div class="page-head-actions">
+          <a class="btn btn-primary btn-sm" href="edit.html"><i class="fa-solid fa-plus"></i>新增告警規則</a>
+        </div>
+      </div>
+      <p class="page-desc">管理告警規則：設定哪些資產與漏洞條件會觸發通知，以及通知給誰</p>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="filter-chips">
+          <span class="chip setting" data-field="每頁顯示">每頁顯示：10 筆 <i class="fa-solid fa-sort"></i>
+            <div class="chip-menu"><div class="current">10 筆</div><div>20 筆</div><div>50 筆</div><div>100 筆</div></div>
+          </span>
+          <span class="chip setting" data-field="嚴重程度">嚴重程度：全部 <i class="fa-solid fa-sort"></i>
+            <div class="chip-menu"><div class="current">全部</div><div>嚴重</div><div>高</div><div>中</div><div>低</div></div>
+          </span>
+          <span class="chip setting" data-field="狀態">狀態：全部 <i class="fa-solid fa-sort"></i>
+            <div class="chip-menu"><div class="current">全部</div><div>啟用</div><div>停用</div></div>
+          </span>
+          <span class="chip applied">關鍵字「KEV」 <i class="fa-solid fa-xmark"></i></span>
+          <span class="chip applied">通知管道：Slack <i class="fa-solid fa-xmark"></i></span>
+        </div>
+        <span class="count-note">共 6 筆規則</span>
+      </div>
+      <div class="toolbar-actions">
+        <span class="col-config">
+          <button class="btn btn-secondary btn-icon btn-sm col-config-btn" title="編輯顯示欄位"><i class="fa-solid fa-sliders"></i></button>
+          <div class="col-menu">
+            <div class="hint">顯示欄位設定</div>
+            <label class="locked"><input type="checkbox" checked disabled><span>規則名稱</span></label>
+            <label><input type="checkbox" data-col="2" checked><span>觸發條件</span></label>
+            <label><input type="checkbox" data-col="3" checked><span>嚴重程度</span></label>
+            <label><input type="checkbox" data-col="4" checked><span>通知管道</span></label>
+            <label><input type="checkbox" data-col="5" checked><span>狀態</span></label>
+            <label class="locked"><input type="checkbox" checked disabled><span>操作</span></label>
+          </div>
+        </span>
+        <button class="btn btn-secondary btn-icon btn-sm" data-open="#advFilter" title="進階篩選"><i class="fa-solid fa-filter"></i></button>
+      </div>
+    </div>
+
+    <div class="table cols-fixed">
+      <table>
+        <colgroup>
+          <col style="width:56px">
+          <col style="width:23%">
+          <col>
+          <col style="width:104px">
+          <col style="width:148px">
+          <col style="width:92px">
+          <col style="width:150px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="cb-cell"><input type="checkbox"></th>
+            <th data-col="1">規則名稱 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">關鍵字篩選</div>
+                <input class="kw" type="text" placeholder="輸入規則名稱關鍵字">
+              </div>
+            </th>
+            <th data-col="2">觸發條件 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">關鍵字篩選</div>
+                <input class="kw" type="text" placeholder="輸入關鍵字">
+              </div>
+            </th>
+            <th data-col="3">嚴重程度 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">欄位篩選</div>
+                <label><input type="checkbox" checked><span>嚴重</span></label>
+                <label><input type="checkbox" checked><span>高</span></label>
+                <label><input type="checkbox" checked><span>中</span></label>
+                <label><input type="checkbox" checked><span>低</span></label>
+              </div>
+            </th>
+            <th data-col="4">通知管道 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">欄位篩選</div>
+                <label><input type="checkbox"><span>Email</span></label>
+                <label><input type="checkbox"><span>Slack</span></label>
+                <label><input type="checkbox"><span>簡訊</span></label>
+              </div>
+            </th>
+            <th data-col="5">狀態 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">欄位篩選</div>
+                <label><input type="checkbox"><span>啟用</span></label>
+                <label><input type="checkbox"><span>停用</span></label>
+              </div>
+            </th>
+            <th style="text-align:right">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-group="g1">
+            <td class="cb-cell"><button class="expander" data-toggle="g1"><i class="fa-solid fa-angle-right"></i></button><input type="checkbox" class="row-cb"></td>
+            <td>KEV 漏洞出現</td>
+            <td>2 項條件（全部符合）</td>
+            <td><span class="tag tag-critical">嚴重</span></td>
+            <td>Email、Slack</td>
+            <td><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+          <!-- 子層：獨立子表格，欄位與寬度不受母層限制 -->
+          <tr class="subrow collapsed" data-child="g1">
+            <td colspan="7">
+              <div class="subtable">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="cb-cell"></th>
+                      <th>條件名稱 <i class="fa-solid fa-sort"></i></th>
+                      <th>資料來源 <i class="fa-solid fa-sort"></i></th>
+                      <th>比較</th>
+                      <th>門檻</th>
+                      <th style="text-align:right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                      <td>含 KEV 標記</td><td>CISA KEV</td><td>=</td><td>是</td>
+                      <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+                    </tr>
+                    <tr>
+                      <td class="cb-cell"><input type="checkbox" class="row-cb"></td>
+                      <td>EPSS 分數</td><td>FIRST EPSS</td><td>≥</td><td>88%</td>
+                      <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="cb-cell"><button class="expander leaf"></button><input type="checkbox" class="row-cb"></td>
+            <td>高風險裝置新增</td><td>裝置風險評分 ≥ 80</td>
+            <td><span class="tag tag-danger">高</span></td><td>Email</td>
+            <td><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+          <tr>
+            <td class="cb-cell"><button class="expander leaf"></button><input type="checkbox" class="row-cb"></td>
+            <td>防毒軟體離線逾 24 小時</td><td>Agent 狀態 = 離線 且 時長 > 24h</td>
+            <td><span class="tag tag-warning">中</span></td><td>Email、簡訊</td>
+            <td><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+          <tr>
+            <td class="cb-cell"><button class="expander leaf"></button><input type="checkbox" class="row-cb"></td>
+            <td>單位帳號總數異常成長</td><td>單日新增帳號 > 20</td>
+            <td><span class="tag tag-warning">中</span></td><td>Email</td>
+            <td><span class="status-cell status-off"><span class="status-dot"></span>停用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+          <tr>
+            <td class="cb-cell"><button class="expander leaf"></button><input type="checkbox" class="row-cb"></td>
+            <td>MITRE ATT&CK 新技術命中</td><td>偵測到未曾出現的攻擊技術類型</td>
+            <td><span class="tag tag-danger">高</span></td><td>Slack</td>
+            <td><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+          <tr>
+            <td class="cb-cell"><button class="expander leaf"></button><input type="checkbox" class="row-cb"></td>
+            <td>週報彙整完成</td><td>每週一 09:00</td>
+            <td><span class="tag tag-success">低</span></td><td>Email</td>
+            <td><span class="status-cell status-on"><span class="status-dot"></span>啟用</span></td>
+            <td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a><a class="row-action action" href="edit.html">編輯</a><span class="row-action danger">刪除</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="page current">1</button>
+      <button class="page">2</button>
+      <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+      <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+      <span class="jump">跳至
+        <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span>
+        頁
+      </span>
+    </div>
+  </div><!-- /sheet -->
+</main>
+
+<!-- Drawer: 進階篩選 -->
+<div class="overlay" id="advFilter" style="justify-content:flex-end">
+  <div class="drawer">
+    <div class="drawer-header">
+      進階篩選
+      <button class="close" data-close><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="field">
+        <label>建立時間</label>
+        <div class="selector"><span>近 30 天</span><i class="fa-solid fa-angle-down"></i></div>
+      </div>
+      <div class="field">
+        <label>觸發指標</label>
+        <div class="selector"><span>全部</span><i class="fa-solid fa-angle-down"></i></div>
+      </div>
+      <div class="field">
+        <label>通知管道</label>
+        <div class="choice-group">
+          <label class="checkbox-row"><input type="checkbox"> Email</label>
+          <label class="checkbox-row"><input type="checkbox"> Slack</label>
+          <label class="checkbox-row"><input type="checkbox"> 簡訊</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>建立者</label>
+        <input class="input" placeholder="輸入名稱">
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-text" data-close>清除</button>
+      <button class="btn btn-primary" data-close>套用</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/shell.js"></script>
+<script src="assets/kit.js"></script>
+</body>
+</html>

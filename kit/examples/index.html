@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uniXecure UI Kit｜範例導覽</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  .wrap { max-width: 640px; margin: 64px auto; padding: 0 var(--space-m); }
+  h1 { font: var(--weight-semibold) var(--text-heading); margin-bottom: var(--space-xs); }
+  .lede { color: var(--text-disable); font: var(--weight-regular) var(--text-caption); margin-bottom: var(--space-big); }
+  .nav-list { display: flex; flex-direction: column; gap: var(--space-s); }
+  .nav-list a {
+    display: flex; align-items: center; gap: var(--space-s);
+    background: var(--bg-default); border: 1px solid var(--border-default);
+    border-radius: var(--radius-card); padding: var(--space-m);
+    font: var(--weight-semibold) var(--text-body); color: var(--text-color);
+  }
+  .nav-list a:hover { border-color: var(--border-hover); }
+  .nav-list a .fa-solid { color: var(--primary-700); width: 20px; text-align: center; }
+  .nav-list a small { margin-left: auto; color: var(--text-disable); font: var(--weight-regular) var(--text-caption2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>uniXecure UI Kit — 範例頁</h1>
+  <p class="lede">四頁共用 assets/kit.css、assets/kit.js、assets/shell.js。側欄選單可互相切換。</p>
+  <div class="nav-list">
+    <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i>資產狀態總覽<small>儀表板</small></a>
+    <a href="list.html"><i class="fa-solid fa-bell"></i>告警設定<small>列表頁</small></a>
+    <a href="detail.html"><i class="fa-solid fa-circle-info"></i>告警規則詳細資訊<small>詳情頁</small></a>
+    <a href="edit.html"><i class="fa-solid fa-plus"></i>新增告警規則<small>新增／編輯頁</small></a>
+  </div>
+</div>
+</body>
+</html>

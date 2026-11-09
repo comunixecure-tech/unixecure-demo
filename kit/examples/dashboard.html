@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAVEN｜資產狀態總覽</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+</head>
+<body data-page="dashboard">
+
+<main class="content" hidden>
+
+  <!-- 篩選列：直接鋪灰底，無白底。文字 + caret 的輕量控制項（比照 RAVEN 設計稿） -->
+  <div class="dash-filters filter-chips">
+    <span class="chip setting" data-field="日期範圍">日期範圍：30 天 <i class="fa-solid fa-sort"></i>
+      <div class="chip-menu"><div>7 天</div><div class="current">30 天</div><div>90 天</div><div>本年度</div></div>
+    </span>
+    <span class="chip setting" data-field="單位">單位：全部 <i class="fa-solid fa-sort"></i>
+      <div class="chip-menu"><div class="current">全部</div><div>資訊室</div><div>財務處</div><div>人事室</div><div>研發部</div></div>
+    </span>
+    <label class="checkbox-row"><input type="checkbox" checked> 僅顯示上架裝置</label>
+    <label class="checkbox-row"><input type="checkbox"> 包含子單位</label>
+    <span class="spacer"></span>
+    <button class="btn btn-secondary btn-icon btn-sm" title="進階篩選"><i class="fa-solid fa-filter"></i></button>
+  </div>
+
+  <!-- KPI 卡片列（6 張等寬，白卡 + 框，鋪灰底） -->
+  <div class="kpi-row raised">
+    <div class="kpi">
+      <span class="kpi-label">監控資產</span>
+      <div class="kpi-line"><span class="kpi-num">1,204</span><span class="kpi-sub">線上 1,180</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">待處理告警</span>
+      <div class="kpi-line"><span class="kpi-num is-danger">23</span><span class="kpi-sub">較昨日 +5</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">高風險資產</span>
+      <div class="kpi-line"><span class="kpi-num is-danger">48</span><span class="kpi-sub">佔全部 4%</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">未修補 KEV</span>
+      <div class="kpi-line"><span class="kpi-num" style="color:var(--critical-500)">12</span><span class="kpi-sub">影響 8 個單位</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">本週處理率</span>
+      <div class="kpi-line"><span class="kpi-num is-warning">82%</span><span class="kpi-sub">目標 90%</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">平均回應時長</span>
+      <div class="kpi-line"><span class="kpi-num">3.2 <span class="kpi-unit">小時</span></span><span class="kpi-sub">目標 4 小時內</span></div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+
+    <!-- 威脅趨勢：面積圖（靜態示意） -->
+    <div class="chart-card span-3">
+      <div class="chart-head">
+        <h3>威脅趨勢（近 30 天）</h3>
+        <div class="tools">
+          <i class="fa-solid fa-table-cells" title="切換表格檢視"></i>
+          <i class="fa-solid fa-chart-line" title="切換圖表檢視"></i>
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+      <svg class="chart-area" viewBox="0 0 600 180" preserveAspectRatio="none">
+        <line class="grid" x1="0" y1="45"  x2="600" y2="45"></line>
+        <line class="grid" x1="0" y1="90"  x2="600" y2="90"></line>
+        <line class="grid" x1="0" y1="135" x2="600" y2="135"></line>
+        <polygon class="fill" points="0,180 0,130 55,120 110,135 165,100 220,110 275,85 330,95 385,70 440,90 495,60 550,75 600,55 600,180"></polygon>
+        <polyline class="stroke" points="0,130 55,120 110,135 165,100 220,110 275,85 330,95 385,70 440,90 495,60 550,75 600,55"></polyline>
+      </svg>
+    </div>
+
+    <!-- 告警嚴重程度分佈：甜甜圈 -->
+    <div class="chart-card span-3">
+      <div class="chart-head">
+        <h3>告警嚴重程度分佈</h3>
+        <div class="tools">
+          <i class="fa-solid fa-table-cells" title="切換表格檢視"></i>
+          <i class="fa-solid fa-chart-pie" title="切換圖表檢視"></i>
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+      <div class="chart-donut-wrap">
+        <div class="chart-donut" style="background:conic-gradient(var(--critical-500) 0 18%, var(--danger-500) 18% 45%, var(--warning-500) 45% 78%, var(--success-500) 78% 100%)"></div>
+        <div class="chart-legend">
+          <span class="lg"><span class="dot" style="background:var(--critical-500)"></span>嚴重 <span class="val">4</span></span>
+          <span class="lg"><span class="dot" style="background:var(--danger-500)"></span>高 <span class="val">6</span></span>
+          <span class="lg"><span class="dot" style="background:var(--warning-500)"></span>中 <span class="val">8</span></span>
+          <span class="lg"><span class="dot" style="background:var(--success-500)"></span>低 <span class="val">5</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 資產風險等級分佈：長條 -->
+    <div class="chart-card span-2">
+      <div class="chart-head">
+        <h3>資產風險等級分佈</h3>
+        <div class="tools">
+          <i class="fa-solid fa-table-cells" title="切換表格檢視"></i>
+          <i class="fa-solid fa-chart-column" title="切換圖表檢視"></i>
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+      <div class="chart-bars">
+        <div class="col"><div class="bar" style="height:26%;background:var(--critical-500)"></div><span class="lbl">嚴重 · 32</span></div>
+        <div class="col"><div class="bar" style="height:40%;background:var(--danger-500)"></div><span class="lbl">高 · 48</span></div>
+        <div class="col"><div class="bar" style="height:72%;background:var(--warning-500)"></div><span class="lbl">中 · 210</span></div>
+        <div class="col"><div class="bar" style="height:100%;background:var(--success-500)"></div><span class="lbl">低 · 640</span></div>
+        <div class="col"><div class="bar" style="height:44%;background:var(--gray-300)"></div><span class="lbl">未評 · 274</span></div>
+      </div>
+    </div>
+
+    <!-- MITRE ATT&CK 命中熱圖 -->
+    <div class="chart-card span-2">
+      <div class="chart-head">
+        <h3>MITRE ATT&CK 命中熱圖</h3>
+        <div class="tools">
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+      <div class="heatmap">
+        <i></i><i class="l1"></i><i></i><i class="l2"></i><i></i><i></i><i class="l1"></i><i class="l3"></i><i></i><i></i><i class="l1"></i><i></i><i class="l2"></i><i></i>
+        <i class="l1"></i><i></i><i class="l2"></i><i></i><i class="l4"></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i class="l1"></i><i></i><i class="l3"></i><i></i><i></i>
+        <i></i><i class="l1"></i><i></i><i></i><i class="l1"></i><i></i><i class="l2"></i><i></i><i class="l1"></i><i></i><i class="l3"></i><i></i><i></i><i class="l1"></i>
+        <i class="l2"></i><i></i><i class="l1"></i><i class="l3"></i><i></i><i></i><i class="l1"></i><i class="l2"></i><i></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i></i>
+      </div>
+      <div class="heatmap-scale">少 <i style="background:var(--warning-300)"></i><i style="background:var(--warning-500)"></i><i style="background:var(--danger-500)"></i><i style="background:var(--critical-500)"></i> 多</div>
+    </div>
+
+    <!-- 各單位待處理告警 Top -->
+    <div class="chart-card span-2">
+      <div class="chart-head">
+        <h3>各單位待處理告警 Top 6</h3>
+        <div class="tools">
+          <i class="fa-solid fa-table-cells" title="切換表格檢視"></i>
+          <i class="fa-solid fa-chart-column" title="切換圖表檢視"></i>
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+      <div class="chart-bars">
+        <div class="col"><div class="bar" style="height:100%"></div><span class="lbl">資訊室 · 9</span></div>
+        <div class="col"><div class="bar" style="height:78%"></div><span class="lbl">財務處 · 7</span></div>
+        <div class="col"><div class="bar" style="height:56%"></div><span class="lbl">人事室 · 5</span></div>
+        <div class="col"><div class="bar" style="height:44%"></div><span class="lbl">研發部 · 4</span></div>
+        <div class="col"><div class="bar" style="height:33%"></div><span class="lbl">客服中心 · 3</span></div>
+        <div class="col"><div class="bar" style="height:22%"></div><span class="lbl">總務處 · 2</span></div>
+      </div>
+    </div>
+
+    <!-- 高風險資產：資料表卡片（card header 小分頁切換兩種排序） -->
+    <div class="card span-6">
+      <div class="chart-head">
+        <div class="card-tabs">
+          <button class="card-tab active" data-panel="risk">風險最高</button>
+          <button class="card-tab" data-panel="recent">最新告警</button>
+        </div>
+        <div class="tools">
+          <a href="list.html">查看全部</a>
+          <i class="fa-solid fa-up-right-and-down-left-from-center" title="展開"></i>
+          <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel-id="risk">
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col><col style="width:96px"><col style="width:120px"><col style="width:96px"><col style="width:96px"><col style="width:110px"></colgroup>
+            <thead>
+              <tr>
+                <th>資產名稱 <i class="fa-solid fa-sort"></i></th>
+                <th>單位 <i class="fa-solid fa-sort"></i></th>
+                <th>IP</th>
+                <th>風險評分 <i class="fa-solid fa-sort"></i></th>
+                <th>風險等級</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>web-prod-07</td><td>資訊室</td><td>10.2.14.7</td><td>96</td><td><span class="tag tag-critical">嚴重</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a></div></td></tr>
+              <tr><td>db-core-02</td><td>財務處</td><td>10.2.9.22</td><td>93</td><td><span class="tag tag-critical">嚴重</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a></div></td></tr>
+              <tr><td>vpn-gw-01</td><td>資訊室</td><td>10.2.0.1</td><td>88</td><td><span class="tag tag-danger">高</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a></div></td></tr>
+              <tr><td>file-srv-04</td><td>人事室</td><td>10.2.11.4</td><td>81</td><td><span class="tag tag-danger">高</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a></div></td></tr>
+              <tr><td>mail-relay-01</td><td>資訊室</td><td>10.2.3.9</td><td>77</td><td><span class="tag tag-warning">中</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">詳細資訊</a></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel-id="recent" hidden>
+        <div class="table cols-fixed">
+          <table>
+            <colgroup><col style="width:110px"><col><col style="width:200px"><col style="width:96px"><col style="width:96px"></colgroup>
+            <thead>
+              <tr>
+                <th>時間 <i class="fa-solid fa-sort"></i></th>
+                <th>資產名稱</th>
+                <th>告警規則</th>
+                <th>嚴重程度</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>09/09 08:12</td><td>web-prod-07</td><td>KEV 漏洞出現</td><td><span class="tag tag-critical">嚴重</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">查看</a></div></td></tr>
+              <tr><td>09/09 06:47</td><td>vpn-gw-01</td><td>高風險裝置新增</td><td><span class="tag tag-danger">高</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">查看</a></div></td></tr>
+              <tr><td>09/08 22:30</td><td>db-core-02</td><td>KEV 漏洞出現</td><td><span class="tag tag-critical">嚴重</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">查看</a></div></td></tr>
+              <tr><td>09/08 19:05</td><td>ap-srv-11</td><td>防毒軟體離線逾 24 小時</td><td><span class="tag tag-warning">中</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">查看</a></div></td></tr>
+              <tr><td>09/08 15:41</td><td>file-srv-04</td><td>MITRE ATT&CK 新技術命中</td><td><span class="tag tag-danger">高</span></td><td><div class="row-actions" style="justify-content:flex-end"><a class="row-action detail" href="detail.html">查看</a></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dash-grid -->
+</main>
+
+<script src="assets/shell.js"></script>
+<script src="assets/kit.js"></script>
+</body>
+</html>

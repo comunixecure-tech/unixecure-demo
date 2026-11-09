@@ -1,0 +1,1317 @@
+/* =============================================================
+   uniXecure UI Kit — 共用元件樣式
+   四個範例頁共用這一份。只用 tokens.css 的 var(--*)，不自創值。
+   搭配：assets/shell.js（注入側欄 / Nav / Footer）、assets/kit.js（互動）
+   ============================================================= */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--bg-surface); color: var(--text-color); }
+ul { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+[hidden] { display: none !important; }
+/* 字重只用 Semibold：瀏覽器預設的粗體是 700，一律壓成 600 */
+b, strong { font-weight: var(--weight-semibold); }
+/* 程式自動捲到某個區塊時要平滑捲動，不要直接跳過去 */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ---------- App shell ---------- */
+.app { display: grid; grid-template-columns: 180px 1fr; grid-template-rows: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar { background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; overflow-y: auto; }
+.menu-base {
+  height: 52px; display: flex; align-items: center; gap: var(--space-xs);
+  padding: 0 var(--space-s); flex-shrink: 0;
+}
+.menu-base .logo {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  color: var(--danger-500); font-size: 20px;
+}
+.menu-base .brand { flex: 1; font: var(--weight-semibold) var(--text-body); color: #fff; }
+.menu-base .collapse { color: rgba(255,255,255,.7); font-size: 12px; padding: 4px; }
+
+.menu-list { display: flex; flex-direction: column; padding-top: var(--space-xs); }
+.menu-item {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-s); width: 100%; text-align: left;
+  font: var(--weight-regular) var(--text-caption); color: #fff;
+}
+.menu-item .fa-solid:first-child { width: 12px; font-size: 12px; text-align: center; }
+.menu-item .label { flex: 1; opacity: .85; }
+.menu-item .chevron { font-size: 16px; opacity: .7; }
+.menu-item:hover { background: rgba(255,255,255,.06); }
+.menu-item.current .label { color: var(--secondary-400); opacity: 1; font-weight: var(--weight-semibold); }
+.menu-item.current .fa-solid:first-child { color: var(--secondary-400); }
+.menu-item.child { padding-left: 32px; }
+.menu-item.child .label { opacity: .7; }
+
+/* BASE / 智慧資安 產品：淺色側欄。頁面 <body class="theme-base"> 時套用。
+   用 --base-sidebar-* 固定色，深色模式下側欄不跟著變（footer 同理，走 --footer-*） */
+.theme-base .sidebar { background: var(--base-sidebar-bg); color: var(--base-sidebar-text); }
+.theme-base .menu-base .brand { color: var(--base-sidebar-text); }
+.theme-base .menu-item { color: var(--base-sidebar-text); }
+.theme-base .menu-item:hover { background: var(--base-sidebar-hover); }
+.theme-base .menu-item.current .label,
+.theme-base .menu-item.current .fa-solid:first-child { color: var(--base-sidebar-active); }
+
+/* ---------- Main column ---------- */
+/* 整個 main 一起捲；nav 黏頂、footer 跟在內容後面（不 fixed 蓋在上層） */
+.main { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
+
+/* ---------- Navigation ---------- */
+.nav {
+  background: var(--bg-default); box-shadow: var(--shadow-nav);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-xl); position: sticky; top: 0; z-index: 5;
+  flex: none; min-height: 52px;
+}
+.breadcrumb { display: flex; align-items: center; gap: var(--space-m); }
+.breadcrumb .crumb { font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+.breadcrumb .crumb.last { font: var(--weight-semibold) var(--text-body); }
+.breadcrumb a.crumb { cursor: pointer; }
+.breadcrumb a.crumb:hover { color: var(--text-link); }
+.breadcrumb .sep { color: var(--text-disable); }
+.nav-right { display: flex; align-items: center; align-self: stretch; }
+/* 導覽列按鈕（對齊 Figma Navigation/btn）：跟導覽列同高 52、padding 8／12、icon 12。
+   hover 灰底；展開狀態（通知面板打開時）底 --bg-actived */
+.nav-btn {
+  height: 52px; min-height: 40px; padding: var(--space-xs) var(--space-s); border-radius: var(--radius-btn);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font: var(--weight-semibold) var(--text-caption); color: var(--text-color);
+}
+.nav-btn .fa-solid { font-size: 12px; width: 12px; text-align: center; }   /* icon 盒 12×12，按鈕才會是 36 寬 */
+.nav-btn:hover { background: var(--bg-hover); }
+.nav-btn:active, .nav-btn.open { background: var(--bg-actived); }
+.nav-btn.has-dot { position: relative; }
+.nav-btn.has-dot::after {   /* 未讀紅點：4px，落在 icon 右上角（icon 左緣 +11、icon 頂緣） */
+  content: ""; position: absolute; top: 20px; left: 23px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--danger-500);
+}
+
+/* ---------- Talk（通知項目，對齊 Figma Talk 7743:3844）----------
+   名稱｜時間（撐滿）｜動作按鈕 同一排，下面是內文。未讀名稱用 action/default 藍、已讀用主文字色 */
+.talk {
+  display: flex; align-items: flex-start; gap: var(--space-s);
+  padding: var(--space-s) var(--space-m); background: var(--bg-default);
+}
+.talk-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 0; }   /* 名稱時間列與內文之間 0（2026-11-03 由 4 改 0） */
+.talk-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-xs); width: 100%; }
+.talk-name { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.talk.is-unread .talk-name { color: var(--btn-default); }
+.talk-time { flex: 1 1 0; min-width: 0; font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }   /* 時間 12／18，三處 Talk 統一（2026-11-03） */
+.talk-action { border-radius: var(--radius-card); }   /* Figma 這顆是 4px，跟一般按鈕的 2px 不同 */
+.talk-body { font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+.talk-body a { font-weight: var(--weight-semibold); color: var(--text-link); text-decoration: underline; }
+
+/* ---------- 導覽列通知（鈴鐺）----------
+   面板／彈出通知都在鈴鐺下方 8px、右緣對齊鈴鐺按鈕右緣；卡片 drop-shadow 0 0 5px */
+.nav-notice { position: relative; display: flex; align-self: stretch; }
+.notice-panel, .notice-toast {
+  position: absolute; top: calc(100% + var(--space-xs)); right: 0; z-index: 20; width: 432px; max-width: calc(100vw - 16px);
+  background: var(--bg-default); border-radius: var(--radius-card); filter: drop-shadow(0 0 5px rgba(51, 51, 51, .1));
+}
+.notice-panel[hidden], .notice-toast[hidden] { display: none; }
+.notice-head { display: flex; justify-content: flex-end; padding: var(--space-xs); }
+.notice-panel .talk { border-top: 1px solid var(--border-default); }
+.notice-panel { max-height: calc(100vh - 52px - 24px); overflow-y: auto; }
+.notice-toast .talk { border-radius: var(--radius-card); }
+
+/* ---------- Content ---------- */
+.content { flex: 1 0 auto; padding: var(--space-m); background: var(--bg-surface); }
+/* 白底 sheet：所有物件都放在這張卡上 */
+.sheet {
+  background: var(--sheet-bg); border-radius: var(--radius-card);
+  padding: var(--space-big);   /* 無陰影：靠白底和灰色頁底區分 */
+}
+.sheet + .sheet { margin-top: var(--space-m); }
+
+/* 頁面標題區（Sheet 最上方；麵包屑只在 Nav）：標題列（標題 ＋ 右上按鈕，垂直置中）＋說明（預設顯示，全寬） */
+.page-head { margin-bottom: var(--space-m); }
+.page-head-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-m); }
+.page-head h1 { font: var(--weight-semibold) var(--text-heading); }
+.page-head-actions { display: flex; align-items: center; gap: var(--space-xs); flex: none; }
+.page-desc { margin-top: var(--space-xxs); font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+/* 窄螢幕（<1181）：右上按鈕掉到說明下面，靠左，跟說明隔 8。page-head-row 用 contents 讓三者變成同一層 */
+@media (max-width: 1180px) {
+  .page-head { display: flex; flex-direction: column; align-items: flex-start; }
+  .page-head-row { display: contents; }
+  .page-head .page-desc { order: 1; }
+  .page-head-actions { order: 2; margin-top: var(--space-xs); flex-wrap: wrap; }
+}
+.page-tabs {
+  display: flex; gap: var(--space-m); border-bottom: 1px solid var(--border-default);
+  margin-bottom: var(--space-m);   /* 對齊 Figma 裝置詳情頁 1233:13945，量出來是 16px 不是 24px */
+}
+.page-tab {
+  padding: var(--space-xs) 2px var(--space-s); font: var(--weight-regular) var(--text-caption);
+  color: var(--text-disable); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.page-tab.active { color: var(--text-color); font-weight: var(--weight-semibold); border-bottom-color: var(--primary-700); }
+
+/* section：sheet 內的次分組 */
+.section + .section,
+.col-split + .section,
+.section + .col-split { margin-top: var(--space-big); }
+.section-title { font: var(--weight-semibold) var(--text-subheading); margin-bottom: var(--space-m); }
+.section-sub { font: var(--weight-semibold) var(--text-body); margin-bottom: var(--space-s); }
+
+/* 左右兩欄切分（詳情頁主/副、編輯頁標題/內容） */
+.col-split { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--space-big); }
+.col-split.main-side { grid-template-columns: 3fr 2fr; }
+.col-split.title-body { grid-template-columns: 240px 1fr; }
+.col-split > * + * { border-left: 1px solid var(--border-default); padding-left: var(--space-big); }
+/* 右欄若本身是有框 Card，就靠 Card 自己的邊界，不再畫分隔線 */
+.col-split > .card + .card,
+.col-split > * + .card { border-left: none; padding-left: 0; }
+@media (max-width: 960px) {
+  /* .main-side／.title-body 的 grid-template-columns 用了 2 個 class，特異度比上面這條
+     單 class 的媒體查詢規則高，不管誰寫在後面都贏——原本只蓋基礎 .col-split，窄螢幕時
+     main-side/title-body 兩個變體完全沒塌成單欄，2026-10-02 順手修掉 */
+  .col-split, .col-split.main-side, .col-split.title-body { grid-template-columns: 1fr; }
+  .col-split > * + * { border-left: none; padding-left: 0; margin-top: var(--space-big); }
+}
+
+/* 定義列表（詳情頁用）。label 固定寬、value 填滿 */
+.def-list { display: grid; grid-template-columns: 120px 1fr; row-gap: var(--space-m); column-gap: var(--space-m); align-items: start; }
+/* label／value 字級統一（2026-10-02 Aimi 拍板，同日再修正：dt/dd 都 14px --text-color，
+   但只有 dt（小標）粗體，dd（值）維持 Regular——右側的值不要用粗體 */
+.def-list dt { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.def-list dd { font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+/* 上下排列變體（標籤在上、值在下，無框）：唯讀欄位用，長標籤（英日文）不會被固定 120px 欄寬擠到換行。
+   標籤與值間距 xxs、項目與項目之間 xs，值保留換行（pre-wrap） */
+.def-list.is-stacked { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+.def-list.is-stacked > dd { margin-top: var(--space-xxs); white-space: pre-wrap; }
+.def-list.is-stacked > dt:not(:first-child) { margin-top: var(--space-xs); }
+/* 橫向排的欄位：標籤在上、內容在下，一組一個 <div>。用在展開列的子內容、文字為主的統計摘要 */
+.def-row { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-big); }
+.def-row dt { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.def-row dd { margin-top: var(--space-xxs); font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+/* 2 欄並排（label/value ｜ label/value），中間分隔線；窄畫面塌回 1 欄（跟 .col-split 同斷點 960） */
+.def-list.cols-2 { position: relative; grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr); }
+.def-list.cols-2 > dt:nth-of-type(2n) { margin-left: var(--space-s); padding-left: var(--space-xl); }
+/* 分隔線不是逐列 border-left（row-gap 會把線切斷、看起來像虛線）。
+   改成一條跨滿整個清單高度的線，位置由 kit.js 量測第二欄 dt 的 x 座標決定 */
+.def-list.cols-2 .cols-2-divider {
+  position: absolute; top: 0; bottom: 0;
+  border-left: 1px solid var(--border-default); pointer-events: none;
+}
+@media (max-width: 960px) {
+  .def-list.cols-2 { grid-template-columns: 120px 1fr; }
+  .def-list.cols-2 > dt:nth-of-type(2n) { margin-left: 0; padding-left: 0; }
+  .def-list.cols-2 .cols-2-divider { display: none; }
+}
+.def-list dd .badge {
+  display: inline-block; margin-left: var(--space-xxs); padding: 0 var(--space-xxs);
+  border-radius: var(--radius-card); background: var(--bg-actived);
+  font: var(--weight-semibold) var(--text-caption2); color: var(--text-link);
+}
+
+/* 項目連結清單 / 外部連結（定義列表 value、參考資料 Card 內用） */
+.link-list { display: flex; flex-direction: column; gap: var(--space-xs); }
+.link-list a { font: var(--weight-regular) var(--text-caption); color: var(--text-link); }
+.link-list a::before { content: "•"; margin-right: var(--space-xs); color: var(--text-disable); }
+.link-list a.ext::before { content: "\2197"; font-family: inherit; }
+.link-list a.dl::before { content: "\2193"; font-family: inherit; }   /* ↓ 檔案下載 */
+.link-list a .fmeta { color: var(--text-disable); margin-left: var(--space-xs); }   /* 格式 / hash 等 meta */
+.link-list a:hover { text-decoration: underline; }
+
+/* Card（有框的子內容塊，nested sheet） */
+.card {
+  background: var(--bg-default); border: 1px solid var(--border-default);
+  border-radius: var(--radius-card); padding: var(--space-m);
+}
+.card-title { font: var(--weight-semibold) var(--text-body); margin-bottom: var(--space-s); }
+/* Sheet 裡的卡片一律攤平：不要底色、陰影，只留 1px 細框做分區（灰底頁面上的卡片不受影響） */
+.sheet .card { background: transparent; box-shadow: none; }
+
+/* Advice Card（處置建議：常駐在頁面內容裡的一則建議，不是即時 toast）
+   標籤｜標題＋說明｜選配動作；顏色只放在標籤（.tag-*），卡片本身無填色、有框 */
+.advice-card {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  gap: var(--space-m); padding: var(--space-xs) var(--space-m);
+  border: 1px solid var(--border-default);   /* 對齊 Figma：無填色、1px inside 邊框 */
+  border-radius: var(--radius-card);
+}
+.advice-card + * { margin-top: var(--space-m); }   /* 卡片之間、卡片與後面內容都隔 16 */
+.advice-card .tag { flex: none; }
+.advice-title { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.advice-desc  { font: var(--text-caption); color: var(--text-disable); }
+.advice-action { flex: none; }
+@media (max-width: 960px) {   /* 窄螢幕（Figma status=table）全部垂直排列：tag 在左上、標題說明、動作 */
+  .advice-card { grid-template-columns: 1fr; align-items: start; gap: var(--space-xs); }
+  .advice-card > .tag, .advice-card .advice-action { justify-self: start; }
+}
+
+/* Count summary（表格上方的總數 + 分佈 tag） */
+.count-summary { display: flex; align-items: center; gap: var(--space-xs); margin-bottom: var(--space-xs); }
+.count-summary .total { font: var(--weight-semibold) var(--text-body); color: var(--text-color); }
+
+/* Note thread（註記 / 留言串） */
+.note-thread { display: flex; flex-direction: column; gap: var(--space-m); }
+.note {
+  display: grid; grid-template-columns: 32px 1fr; column-gap: var(--space-s); row-gap: var(--space-xxs);
+}
+.note .avatar {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--primary-100); color: var(--primary-700);
+  font: var(--weight-semibold) var(--text-caption2);
+}
+.note .note-meta { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); align-self: center; }
+.note .note-meta b { font-weight: var(--weight-semibold); color: var(--text-color); }
+.note .note-body { grid-column: 2; font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+.note.reply { margin-left: var(--space-big); }
+.note-compose { display: flex; gap: var(--space-xs); margin-top: var(--space-s); }
+.note-compose .input { flex: 1; }
+
+/* Sheet footer actions（整頁送出列） */
+.sheet-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: var(--space-big); padding-top: var(--space-m);
+  border-top: 1px solid var(--border-default);
+}
+.sheet-footer .right { display: flex; gap: var(--space-xs); }
+
+/* toolbar：左邊「共 N 筆」＋ 基本篩選 chip 同一排、右邊操作按鈕。
+   chip 多時左側整組換行，按鈕維持右上（align-items: flex-start） */
+.toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-m); margin-bottom: var(--space-xs); }
+.toolbar-left { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--space-s) var(--space-m); flex: 1; min-width: 0; }
+/* chips 太多只在自己的區塊內換行（第二行對齊第一顆 chip）；右側動作固定在第一排，整排靠上對齊。
+   第一排每個項目都撐成 32px 高，單行時視覺上等於置中 */
+.toolbar-left > .count-note { display: inline-flex; align-items: center; min-height: 32px; }
+.toolbar-left > .toolbar-sep { align-self: flex-start; margin-top: 6px; }
+.toolbar-actions { display: flex; gap: var(--space-xs); flex: none; }
+.count-note { font: var(--weight-regular) var(--text-caption); color: var(--text-color); white-space: nowrap; }
+.toolbar-left .filter-chips { margin: 0; }
+.toolbar-left > .filter-chips { margin-top: 5px; }   /* chip 高 22，往下 5px 對齊 32px 的第一排中線，多行時只有第一排對齊 */
+/* 工具列內的細分隔線：切換按鈕（32px）跟筆數／chips（22px）同一排時，用它把兩組隔開，
+   讀起來是兩個群組，不會被當成「高度不一樣的相鄰元素」。規則見 CLAUDE.md 列表頁「切換按鈕的位置」 */
+/* 工具列常駐搜尋框：<div class="input input-sm toolbar-search"><input …><i class="fa-solid fa-magnifying-glass"></i></div>，
+   32px 控制項，跟切換按鈕同一組、排在切換按鈕後面（沒有切換按鈕就排最前面），分隔線之後才是 chips 與筆數 */
+.toolbar-search { flex: none; width: 240px; }
+.toolbar-search.is-compact { width: 160px; }   /* 工具列很擠時 */
+.toolbar-sep { flex: none; width: 1px; height: 20px; background: var(--border-default); align-self: center; }
+/* 切換按鈕＋面板專屬工具列併成同一排（切換的是面板、各面板各有 .bulk-bar 時用，例：scan-detail 依主機／依弱點）。
+   .bulk-bar 在這裡是 display:contents，它的 .bulk-lead（chips＋筆數）與 .bulk-actions 直接成為這排的子項，
+   用 data-view-panel 隨切換顯示／隱藏。窄螢幕自動換行：先是動作掉到下一排靠右，再窄 chips＋筆數也整組
+   掉下去（等於回到「切換列＋工具列」兩排），孤零零的 .toolbar-sep 由 kit.js 自動隱藏 */
+.toolbar-flow { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-s) var(--space-m); margin-bottom: var(--space-xs); }
+.toolbar-flow > .bulk-bar { display: contents; }
+.toolbar-flow .bulk-lead { flex: 1 1 auto; }
+.toolbar-flow .bulk-actions { margin-left: auto; }
+.toolbar-toggles { display: flex; align-items: center; gap: var(--space-m); flex: none; }
+/* 篩選列：3～4 組切換按鈕時，每組一排、左邊帶固定寬度標籤，放在 .toolbar 上方 */
+.filter-rows { display: flex; flex-direction: column; gap: var(--space-xs); margin-bottom: var(--space-xs); }
+.filter-row { display: flex; align-items: center; gap: var(--space-m); }
+.filter-label { flex: none; width: 80px; font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+
+/* ---------- Filter chips（基本篩選：tag 樣式，不用 input/selector） ---------- */
+.filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); margin-bottom: var(--space-xs); }
+.chip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--space-xxs);
+  padding: 2px var(--space-xxs); border-radius: var(--radius-card);
+  font: var(--weight-semibold) var(--text-caption2); cursor: pointer; white-space: nowrap;
+}
+.chip .fa-solid { font-size: 8px; }
+.chip.setting { background: var(--tag-gray-bg); color: var(--tag-gray-text); }
+.chip.setting.open { background: var(--bg-actived); }
+.chip.applied { background: var(--btn-default); color: #fff; }
+.chip.applied .fa-solid { font-size: 10px; }
+.chip-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 25;
+  background: var(--bg-default); border: 1px solid var(--border-hover);
+  border-radius: var(--radius-btn); padding: var(--space-xs) 0;
+  box-shadow: var(--shadow-normal); display: none; min-width: 120px;
+}
+.chip.open .chip-menu { display: block; }
+.chip-menu div {
+  padding: var(--space-xxs) var(--space-s); font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+}
+.chip-menu div:hover { background: var(--bg-hover); }
+.chip-menu div.current { color: var(--text-link); }
+/* 關鍵字型：選單裡放一個輸入框，Enter / blur 產生藍色 applied chip */
+.chip-menu input[type="text"] {
+  display: block; width: calc(100% - var(--space-m)); margin: 0 var(--space-xs);
+  height: 28px; padding: 0 var(--space-xs); box-sizing: border-box;
+  border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color); background: var(--bg-default);
+}
+.chip-menu input[type="text"]:focus { outline: 0; border-color: var(--border-hover); }
+/* 多選型：選單裡放一排 checkbox label。chip 文字自動彙總成「已選項、已選項」，
+   都不選時退回「全部」（kit.js 自動綁，change 時彙總） */
+.chip-menu label {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xxs) var(--space-s); font: var(--weight-regular) var(--text-caption);
+  color: var(--text-color); cursor: pointer;
+}
+.chip-menu label:hover { background: var(--bg-hover); }
+/* 選項前面的語意色點：直徑 8，跟文字的距離靠 label 的 gap 8（色點不另加 margin），顏色跟表格欄位的 tag 同色。
+   用法：<label><input type="checkbox"><span class="opt-dot" style="background:var(--success-500)"></span>已完成</label> */
+.chip-menu .opt-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* ---------- Form controls ---------- */
+.field { display: flex; flex-direction: column; gap: var(--space-xxs); }
+/* 2026-10-03 Aimi 拍板：表單欄位小標統一 14px Semibold --text-color（原本 Regular，
+   跟 CLAUDE.md 之前寫的 16px Semibold 也不同，文件這次一起改，別再照舊的 16px 做） */
+.field > label { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.field .req { color: var(--danger-500); }
+.input, .selector {
+  height: 36px; border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  background: var(--bg-default); color: var(--text-color);
+  padding: 0 var(--space-s); font: var(--weight-regular) var(--text-caption);
+  display: flex; align-items: center; gap: var(--space-xs); min-width: 160px;
+}
+/* 狀態只變框色，不加填色（照設計系統） */
+.input:hover, .selector:hover { border-color: var(--border-hover); }
+.input:focus, .input:focus-within, .selector.open { outline: none; border-color: var(--border-hover); }
+.field.error .input { border-color: var(--danger-500); }
+.field.error .hint { color: var(--danger-500); font: var(--weight-regular) var(--text-caption2); }
+.selector { justify-content: space-between; cursor: pointer; position: relative; }
+.input > .fa-solid, .selector > .fa-solid { font-size: 12px; color: var(--text-disable); }
+.input::placeholder { color: var(--text-disable); }
+input.input { display: block; width: 100%; }
+/* S 尺寸（32px，跟 .btn-sm 同高）：工具列裡的搜尋框、篩選下拉用，.input 與 .selector 都能加。
+   ⚠ 暫代版：Aimi 說 Figma 已有 S 尺寸 input，但 2026-10-07 Figma MCP 額度用完沒能核對，
+   先照 .btn-sm 的尺寸邏輯（高 32、左右內距 8、gap 4）。拿到 Figma 節點後要對照內距／字級／icon 尺寸 */
+.input-sm { height: 32px; padding: 0 var(--space-xs); gap: var(--space-xxs); }
+/* 帶 icon 的輸入框：<div class="input input-sm"><input placeholder="關鍵字"><i class="fa-solid fa-magnifying-glass"></i></div>
+   裡面的 input 去框、透明、撐滿，外框與 hover／focus 狀態由 .input 負責（focus-within） */
+.input > input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; color: inherit; padding: 0; }
+.checkbox-row, .radio-row { display: inline-flex; align-items: center; gap: var(--space-xs); font: var(--weight-regular) var(--text-caption); line-height: 20px; }
+
+/* ===== checkbox / radio：自訂外觀，對齊設計稿 RC 元件（318-1156） ===== */
+input[type="checkbox"], input[type="radio"] {
+  appearance: none; -webkit-appearance: none; margin: 0; box-sizing: border-box;
+  width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle;
+  border: 1px solid var(--border-default);   /* default 邊框 = border/default&disable */
+  background: var(--bg-default);
+  display: inline-grid; place-content: center; cursor: pointer;
+}
+input[type="checkbox"] { border-radius: var(--radius-checkbox); }
+input[type="radio"] { border-radius: 50%; }
+input[type="checkbox"]:hover, input[type="radio"]:hover { border-color: var(--border-hover); }
+input[type="checkbox"]:checked, input[type="radio"]:checked,
+input[type="checkbox"]:indeterminate {
+  background: var(--btn-default); border-color: var(--btn-default);
+}
+input[type="checkbox"]:checked::after {
+  content: ""; width: 5px; height: 9px; margin-top: -2px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+input[type="checkbox"]:indeterminate::after { content: ""; width: 10px; height: 2px; background: #fff; }
+input[type="radio"]:checked::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+input[type="checkbox"]:disabled, input[type="radio"]:disabled {
+  background: var(--bg-disable); border-color: var(--border-default); cursor: not-allowed;
+}
+input[type="checkbox"]:disabled:checked::after { border-color: var(--border-default); }
+input[type="radio"]:disabled:checked::after { background: var(--border-default); }
+/* 單選 / 多選的選項一律水平排列（超過一列自動換行） */
+.choice-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-s) var(--space-m); }
+.field-row { display: flex; gap: var(--space-s); }
+.field-row .field { flex: 1; }
+textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--space-s); line-height: 24px; resize: vertical; display: block; width: 100%; }
+.help { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); margin-top: var(--space-xxs); }
+.auto-value { font: var(--weight-regular) var(--text-caption); color: var(--text-link); }
+
+/* ---------- 整頁編輯頁：left-label 表單 ---------- */
+.form-ll .ff { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--space-m); align-items: start; }
+.form-ll .ff + .ff { margin-top: var(--space-m); }
+/* label 與 36px 控制項（input / selector）垂直置中：pad-top 12 + 行高 24 = 36 */
+/* 同上，表單欄位小標統一 14px Semibold（2026-10-03） */
+.form-ll .ff > label { padding-top: var(--space-s); font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.form-ll .ff > label .req { color: var(--danger-500); }
+/* 控制項只是一行文字（無 input）時，label 與值垂直置中對齊 */
+.form-ll .ff.mid { align-items: center; }
+.form-ll .ff.mid > label { padding-top: 0; }
+/* 選項列（choice-group）：label 與那排選項垂直置中 */
+.form-ll .ff:has(.choice-group) { align-items: center; }
+.form-ll .ff:has(.choice-group) > label { padding-top: 0; }
+.form-ll .ff-control { max-width: 440px; }   /* 輸入框最寬 440，不論螢幕多寬都不撐滿 */
+.form-ll .ff.wide .ff-control { max-width: none; }
+.form-ll .ff-control .row { display: flex; align-items: center; gap: var(--space-xs); }
+.required-note { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); margin-bottom: var(--space-m); }
+.required-note .req { color: var(--danger-500); }
+
+/* ---------- toggle switch ---------- */
+.switch { display: inline-flex; align-items: center; min-height: 36px; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track {
+  width: 40px; height: 22px; border-radius: 999px; background: var(--border-default);
+  position: relative; display: inline-block; flex-shrink: 0;
+}
+.switch .track::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; transition: transform .15s;
+}
+.switch input:checked + .track { background: var(--btn-default); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch .switch-label { margin-left: var(--space-xs); font: var(--weight-regular) var(--text-caption); }
+
+/* ---------- multi-select tag 欄位（值以可刪 tag 排在框內，外觀＝Selector） ---------- */
+.tag-field {
+  min-height: 36px; border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  background: var(--bg-default); padding: var(--space-xxs) var(--space-s);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xxs);
+}
+.tag-field:hover, .tag-field:focus-within { border-color: var(--border-hover); }
+.tag-field .tag .fa-circle-xmark, .tag-field .tag svg { cursor: pointer; }
+.tag-field input {
+  border: none; background: none; outline: none; flex: 1 1 60px; min-width: 60px; height: 28px;
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+}
+
+/* 輸入類控制項的 disabled 樣式（CLAUDE.md input 規格寫的「disable：底 --bg-disable、文字 --text-disable」，
+   之前 kit.css 沒實作）。每個控制項各自帶狀態：<input class="input" disabled>、
+   <div class="selector is-disabled">、<div class="tag-field is-disabled">（裡面的 input 也加 disabled）。
+   放在 hover／focus 規則之後，特異度相同、後寫的贏，disabled 時框色不會被 hover 蓋回去 */
+.input:disabled, .selector.is-disabled, .tag-field.is-disabled {
+  background: var(--bg-disable); color: var(--text-disable);
+  border-color: var(--border-default); cursor: not-allowed;
+}
+.selector.is-disabled { pointer-events: none; }
+.tag-field.is-disabled input { color: var(--text-disable); }
+.tag-field.is-disabled .tag .fa-circle-xmark, .tag-field.is-disabled .tag svg { pointer-events: none; }
+.tag-field > .fa-solid { font-size: 12px; color: var(--text-disable); flex-shrink: 0; }
+
+/* ---------- Dropdown panel ---------- */
+.dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%;
+  background: var(--bg-default); border: 1px solid var(--border-hover);
+  border-radius: var(--radius-btn); padding: var(--space-xs) 0; z-index: 20;
+  box-shadow: var(--shadow-normal); display: none;
+}
+.selector.open .dropdown { display: block; }
+.dropdown-hint { padding: 0 var(--space-s); font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
+.dropdown-option {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-s); font: var(--weight-regular) var(--text-caption);
+  color: var(--text-color); white-space: nowrap;
+}
+.dropdown-option:hover { background: var(--bg-hover); }
+.dropdown-option.current { color: var(--text-link); }
+
+/* ---------- Buttons（對齊 Figma 1749-13548：6 型 × default/hover/actived/disable）---------- */
+/* disable 兩種寫法都吃：<button disabled> 或 <a class="btn disabled"> */
+.btn {
+  border-radius: var(--radius-btn); display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: var(--btn-py) var(--btn-px); min-height: 40px;
+  font: var(--weight-semibold) var(--text-caption); white-space: nowrap; cursor: pointer;
+  --btn-py: 8px; --btn-px: 12px;   /* 內距寫成變數：有框的按鈕要扣掉框線那 1px，見 .btn-secondary */
+}
+.btn .fa-solid { font-size: 12px; }
+
+/* 尺寸 */
+.btn-sm { --btn-py: 4px; --btn-px: 8px; min-height: 32px; gap: 4px; }
+/* L 對齊 Figma 1749-13548（2026-10-06）：16px/28 Semibold（Text/Body-semi）、內距 10／16、gap 8、icon 16、
+   總高 48（28 + 10×2）。之前是 20px Regular／min-height 44，是舊版 */
+.btn-lg { --btn-py: 10px; --btn-px: 16px; min-height: 48px; gap: 8px; font: var(--weight-semibold) var(--text-body); }
+.btn-lg .fa-solid { font-size: 16px; }
+.btn-icon { min-height: 40px; padding: 8px; width: 40px; gap: 0; }
+.btn-sm.btn-icon { min-height: 32px; width: 32px; }
+
+/* Primary —— 同操作區域只出現一顆 */
+.btn-primary { background: var(--btn-default); color: #fff; }
+.btn-primary:not(:disabled):not(.disabled):hover  { background: var(--btn-hover); }
+/* actived 對齊 Figma 1749-13548（2026-10-06 核對）：底同 hover，外加 3px 半透明外圈
+   （Figma rgba(90,117,215,.2)＝--btn-hover 的 20%）。原本是另一個較深的 --btn-actived 底色，已不用 */
+.btn-primary:not(:disabled):not(.disabled):active { background: var(--btn-hover); box-shadow: 0 0 0 3px color-mix(in srgb, var(--btn-hover) 20%, transparent); }
+
+/* Secondary */
+.btn-secondary { background: var(--bg-default); border: 1px solid var(--border-default); color: var(--text-color); }
+/* Figma 的框線畫在內側（stroke inside），按鈕總尺寸不含框；CSS 的 border 會往外加，有框的按鈕就會比
+   沒框的大 2px（S 34 vs 32、M 42 vs 40）。內距各扣掉 1px 框線，總尺寸跟 Figma 一致（S 32／M 40），
+   有框無框並排時高度才會一樣。之後有框的按鈕變體（例如 view-toggle 選中）都要套同一條 */
+.btn-secondary, .view-toggle .btn.btn-primary { padding: calc(var(--btn-py) - 1px) calc(var(--btn-px) - 1px); }
+/* hover／actived 對齊 Figma 1749-13548（2026-10-06 Aimi 改版，S／M／L 三尺寸一致）：
+   hover ＝ 底維持白、框與字轉 --btn-hover（action/hover）；
+   actived ＝ hover 再加底 --bg-actived（surface/actived）。原本 actived 是另一套外框線樣式，已移除。
+   跟 .view-toggle 選中樣式（底 --bg-actived、框與字 --btn-hover）是同一套，所以兩者看起來一致 */
+.btn-secondary:not(:disabled):not(.disabled):hover  { border-color: var(--btn-hover); color: var(--btn-hover); }
+.btn-secondary:not(:disabled):not(.disabled):active { background: var(--bg-actived); border-color: var(--btn-hover); color: var(--btn-hover); }
+
+/* Text */
+.btn-text { color: var(--text-color); }
+.btn-text:not(:disabled):not(.disabled):hover  { background: var(--bg-hover); }
+.btn-text:not(:disabled):not(.disabled):active { background: var(--bg-actived); }
+
+/* Danger —— 破壞性操作，按了要有防呆 */
+.btn-danger { background: var(--btn-danger); color: #fff; }
+.btn-danger:not(:disabled):not(.disabled):hover  { background: var(--btn-danger-hover); }
+/* actived 同 Primary：底同 hover ＋ 3px 半透明外圈（Figma rgba(226,57,31,.2)，這裡用 --btn-danger 的 20%，色差極小） */
+.btn-danger:not(:disabled):not(.disabled):active { background: var(--btn-danger-hover); box-shadow: 0 0 0 3px color-mix(in srgb, var(--btn-danger) 20%, transparent); }
+
+/* Link —— 純文字連結 / 純 icon 按鈕，無底無框、padding 更小 */
+.btn-link { color: var(--text-link); padding: 4px 6px; min-height: 0; }
+.btn-link:not(:disabled):not(.disabled):hover,
+.btn-link:not(:disabled):not(.disabled):active { color: color-mix(in srgb, var(--text-link) 80%, #fff); }
+
+/* Widget —— 藍色藥丸（工具 / 置頂 / 對話泡泡）；底色可視情況覆寫 */
+.btn-widget {
+  background: var(--btn-default); color: #fff; border-radius: 999px;
+  padding: 6px 14px; transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn-widget:not(:disabled):not(.disabled):hover,
+.btn-widget:not(:disabled):not(.disabled):active {
+  background: color-mix(in srgb, var(--btn-default) 80%, #fff);
+  box-shadow: var(--shadow-normal); transform: scale(1.04);
+}
+
+/* Disable */
+.btn:disabled, .btn.disabled { cursor: not-allowed; box-shadow: none; }
+/* Primary／Danger disable：底 action/disable、字白（Figma alwayswhite），不是灰字（2026-10-06 核對 Figma） */
+.btn-primary:disabled, .btn-primary.disabled,
+.btn-danger:disabled,  .btn-danger.disabled { background: var(--btn-disable); color: #fff; }
+.btn-widget:disabled,  .btn-widget.disabled { background: var(--btn-disable); color: var(--text-disable); transform: none; }
+/* disabled 底色原本是 --bg-default（白），Figma 7650:37555 的 disabled 示意其實是
+   --bg-disable（surface/disable，淺灰）才對，改對齊（2026-09-29） */
+.btn-secondary:disabled, .btn-secondary.disabled { background: var(--bg-disable); border-color: var(--border-default); color: var(--text-disable); }
+.btn-text:disabled, .btn-text.disabled,
+.btn-link:disabled, .btn-link.disabled { background: transparent; color: var(--text-disable); }
+
+/* ---------- View toggle（二選一連體按鈕，對齊 RAVEN 16513-90213）---------- */
+/* 用法：<div class="view-toggle"><button class="btn btn-sm btn-primary" data-view="a">A</button>
+   <button class="btn btn-sm btn-secondary" data-view="b">B</button></div>
+   選中的按鈕 class 是 btn-primary、其餘 btn-secondary（kit.js 自動切換）。
+   對應面板：[data-view-panel="a"]，範圍抓最近的 .sheet/.card/.chart-card */
+.view-toggle { display: inline-flex; }
+.view-toggle .btn { border-radius: 0; margin-left: -1px; position: relative; }
+.view-toggle .btn:first-child { margin-left: 0; border-top-left-radius: var(--radius-btn); border-bottom-left-radius: var(--radius-btn); }
+.view-toggle .btn:last-child { border-top-right-radius: var(--radius-btn); border-bottom-right-radius: var(--radius-btn); }
+/* 相鄰兩顆的 border 疊在一起會變粗邊；選中/hover/focus 的那顆疊到上層，border 才完整 */
+.view-toggle .btn:hover, .view-toggle .btn:focus, .view-toggle .btn.btn-primary { z-index: 1; }
+/* 選中（.btn-primary）改成「排列呈現」actived 樣式（Figma Unixecure-Design 7650:37565）：
+   空心、底色 --bg-actived（淺藍）、邊框 1px solid --btn-hover、文字同步 --btn-hover，
+   沒有陰影（跟 .btn-widget 那種 hover 加陰影/放大的做法不同，這裡純粹換色）。
+   default/hover/disabled 三態不變，只有選中狀態換掉。已經有自己顏色的按鈕（例如嚴重度
+   色階）只蓋文字色（用行內樣式或更明確的選擇器，特異度會贏過這裡），邊框一律維持
+   --btn-hover 藍色不跟著變。
+   （2026-09-29 補修①）第一版寫成 border-color: var(--btn-hover)，但 .btn-primary 本身
+   沒有 border-width/style（filled 按鈕靠底色撐形狀，不需要框），只蓋顏色等於沒畫出來
+   ——跟之前 kb-list.html 的 .tone-toggle 中過的同一個雷。改成完整 border 簡寫
+   （1px solid ...）才會真的顯示；tone-toggle 那類只蓋 border-color 的規則沒問題，
+   因為它們是疊在這條「已經有完整 border」的規則之上，只換顏色。
+   （2026-09-29 補修②）底色第一版寫成 --bg-hover（淺灰），是我對「底色改成 surface/hover」
+   這句指示的字面翻譯，但 Figma 7650:37565 實際截圖裡選中底色是 --surface/actived
+   （淺藍 #f2f4fc），Aimi 看到渲染結果後確認要淺藍色，不是灰色，改回對應 Figma 實際
+   顯示的 --bg-actived。 */
+.view-toggle .btn.btn-primary {
+  background: var(--bg-actived); border: 1px solid var(--btn-hover); color: var(--btn-hover); box-shadow: none;
+}
+/* .btn-primary:hover 原本會補一層 --btn-hover 實心填色，選中的按鈕本身是空心，hover
+   時冒出實心底色會很突兀，蓋掉維持空心；跟其他按鈕型別一致補上 :not(:disabled) 排除
+   disabled——disabled 的選項本來就不能被選中（<button disabled> 原生就收不到 click），
+   也不該有 hover/active 回饋，這條只是讓「萬一」被選中又 disabled 的按鈕不會被 hover
+   影響（2026-09-29，Aimi 確認）。 */
+.view-toggle .btn.btn-primary:not(:disabled):not(.disabled):is(:hover, :active) { background: var(--bg-actived); box-shadow: none; }
+
+/* ---------- Tone toggle（.view-toggle 的修飾類別，選中/未選中都依語意色上色文字）---------- */
+/* 用法：<div class="view-toggle tone-toggle"><button class="btn btn-sm btn-primary"
+   data-view="a" data-tone="neutral">全部</button>
+   <button class="btn btn-sm btn-secondary" data-view="b" data-tone="success">低</button>…</div>
+   tone 值：neutral（不上色，維持 kit 預設藍）／success／warning／gray／critical／danger／info，
+   對應 --{tone}-500。邊框一律維持 .view-toggle 預設的 --btn-hover 藍色，只有文字換色——
+   這是 Aimi 明確要求的行為，不要改成邊框也跟著變色。 */
+.tone-toggle .btn[data-tone="success"]  { --tone-color: var(--success-500); }
+.tone-toggle .btn[data-tone="warning"]  { --tone-color: var(--warning-500); }
+.tone-toggle .btn[data-tone="gray"]     { --tone-color: var(--gray-500); }
+.tone-toggle .btn[data-tone="critical"] { --tone-color: var(--critical-500); }
+.tone-toggle .btn[data-tone="danger"]   { --tone-color: var(--danger-500); }
+.tone-toggle .btn[data-tone="info"]     { --tone-color: var(--info-500); }
+.tone-toggle .btn[data-tone]:not([data-tone="neutral"]) { color: var(--tone-color); }
+.tone-toggle .btn.btn-primary[data-tone]:not([data-tone="neutral"]) { color: var(--tone-color); }
+
+/* ---------- Bulk bar（勾選列後的批次操作，design-system-gaps B3）---------- */
+/* 一直顯示；沒有勾選任何列時右側動作按鈕（含下面的 .bulk-mark-toggle）都 disabled，
+   選了才解鎖。不套底色/邊框，跟篩選列同層級。位置在篩選列跟表格中間，不 fixed。 */
+.bulk-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-m); margin-bottom: var(--space-xs); }
+.bulk-bar .bulk-actions { display: flex; align-items: center; gap: var(--space-xs); }
+/* 左側群組：篩選 chip ＋ 筆數同一排（chip 多時整組換行，動作維持靠右），跟 .toolbar-left 同一套 */
+.bulk-lead { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-m); flex: 1; min-width: 0; }
+.bulk-lead .filter-chips { margin: 0; }
+
+/* ---------- Bulk mark（按鈕文字固定、點開是動作選單，跟 .selector 語意不同：
+   .selector 是「顯示目前選到的值」，選完會把按鈕文字換成選項文字；批次選取時列本來就
+   可能狀態不一樣，沒有單一「目前值」可顯示，所以不能用 .selector。視覺借用既有的
+   .dropdown/.dropdown-option，但用自己的 class＋自己的開關邏輯（kit.js 獨立一套，
+   不吃 .selector 的監聽）---------- */
+.bulk-mark { position: relative; display: inline-flex; }
+.bulk-mark .dropdown { display: none; }
+.bulk-mark.open .dropdown { display: block; }
+
+/* ---------- 表格空狀態（design-system-gaps B2，先擋著的簡陋版，還沒有插圖/CTA 等正式設計）---------- */
+.empty-state { text-align: center; padding: var(--space-big); color: var(--text-disable); font: var(--weight-regular) var(--text-caption); }
+
+/* ---------- Stat toggle（純文字底線式二選一，對齊 RAVEN 18906-61693）---------- */
+/* 跟 .page-tab/.card-tab（帶底線分頁）不同，這個無底色無粗線，純文字＋虛線底線。
+   用法同 tab：<span class="stat-toggle-item active" data-panel="a">A</span>
+   <span class="stat-toggle-sep">｜</span><span class="stat-toggle-item" data-panel="b">B</span>
+   對應 .tab-panel[data-panel-id]（跟 kit 既有 tab 共用同一套面板機制） */
+.stat-toggle { display: flex; align-items: center; gap: var(--space-xs); }
+.stat-toggle-item {
+  font: var(--weight-regular) var(--text-caption); color: var(--text-disable); cursor: pointer;
+  text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;
+}
+.stat-toggle-item.active { font-weight: var(--weight-semibold); color: var(--text-color); text-decoration: none; cursor: default; }
+.stat-toggle-sep { color: var(--border-default); }
+
+/* ---------- Table ---------- */
+.table {
+  position: relative;
+  background: var(--bg-default); border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+}
+.table thead tr:first-child th:first-child { border-top-left-radius: var(--radius-card); }
+.table thead tr:first-child th:last-child  { border-top-right-radius: var(--radius-card); }
+.table table { width: 100%; border-collapse: collapse; }
+/* 有可展開子列的表格：固定欄寬，展開子列時欄位不會跑掉。搭配 <colgroup> 指定寬度 */
+.table.cols-fixed > table { table-layout: fixed; }
+.table.cols-fixed > table > tbody > tr > td { overflow: hidden; text-overflow: ellipsis; }
+/* 子表格是獨立 auto 佈局，不受上面兩條影響 */
+.table.cols-fixed .subtable table { table-layout: auto; }
+.table.cols-fixed .subtable td { overflow: visible; }
+
+/* 欄位左右凍結（滾動規則，對齊元件庫 1676-11207）：橫向捲動時前 / 後欄位 Fixed，
+   有白底填色 + 陰影；捲到該側底時（.at-l / .at-r，kit.js 偵測）陰影收掉。
+   用法：<div class="table cols-fixed scroll-x">，要凍結的 th/td 加 .sticky-l 或 .sticky-r */
+.table.scroll-x { overflow-x: auto; }
+.table .sticky-l, .table .sticky-r { position: sticky; z-index: 2; background: var(--bg-default); }
+.table thead .sticky-l, .table thead .sticky-r { z-index: 3; background: var(--table-title-bg); }
+.table .sticky-l { left: 0; }
+.table .sticky-r { right: 0; }
+.table.scroll-x.at-l .sticky-l { box-shadow: none; }
+.table.scroll-x:not(.at-l) .sticky-l { box-shadow: 4px 0 6px -2px rgba(51, 51, 51, .15); }
+.table.scroll-x.at-r .sticky-r { box-shadow: none; }
+.table.scroll-x:not(.at-r) .sticky-r { box-shadow: -4px 0 6px -2px rgba(51, 51, 51, .15); }
+
+/* 數字欄置中（金額、數量、統計欄常用） */
+.table td.num-col, .table th.num-col { text-align: center; }
+.table th.num-col .th-in { justify-content: center; }
+
+.table th {
+  height: var(--table-head-h); background: var(--table-title-bg);
+  font: var(--weight-semibold) var(--text-caption2); color: var(--text-color);
+  text-align: left; padding: 0 var(--table-padding-h); white-space: nowrap;
+  position: relative;
+}
+/* 表頭內容包一層，標題可截斷、icon 不會擠出左右 padding */
+.table th > .th-in { display: flex; align-items: center; gap: var(--space-xxs); max-width: 100%; overflow: hidden; }
+.table th .th-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 表頭 icon（相容 FA 的 <i> 與 svg 兩種輸出） */
+.table th :is(.fa-solid, svg) { font-size: 8px; width: 8px; flex: none; color: var(--text-disable); cursor: pointer; }
+.table th > :is(.fa-solid, svg) { margin-left: 4px; }
+.table th :is(.fa-solid, svg):hover { color: var(--text-color); }
+.table th.sorted { background: var(--table-title-bg-active); }
+.table th.sorted .fa-sort { color: var(--text-color); }
+.table th.filtered .fa-filter { color: var(--btn-default); }
+
+/* 表頭 filter / 顯示欄位設定 的小下拉 */
+.col-menu {
+  position: absolute; top: calc(100% + 2px); left: var(--table-padding-h); z-index: 30;
+  width: 200px; background: var(--bg-default); border: 1px solid var(--border-hover);
+  border-radius: var(--radius-btn); padding: var(--space-xs) 0;
+  box-shadow: var(--shadow-normal); display: none; font-weight: var(--weight-regular);
+}
+.table th.menu-open .col-menu { display: block; }
+.col-menu .hint { padding: 0 var(--space-s); font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
+.col-menu label {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-s); font: var(--weight-regular) var(--text-caption);
+  color: var(--text-color); cursor: pointer;
+}
+.col-menu label:hover { background: var(--bg-hover); }
+.col-menu .kw {
+  margin: var(--space-xxs) var(--space-s) 0; padding: var(--space-xxs) var(--space-xs);
+  height: 32px; width: calc(100% - var(--space-m)); box-sizing: border-box;
+  border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  background: var(--bg-default); color: var(--text-color);
+  font: var(--weight-regular) var(--text-caption);
+}
+.col-menu .kw:focus { outline: none; border-color: var(--border-hover); }
+.col-menu label input:checked + span { color: var(--text-link); }
+.col-menu label.locked { color: var(--text-disable); cursor: not-allowed; }
+
+/* 「編輯顯示欄位」放在 toolbar，下拉往右對齊 */
+.col-config { position: relative; }
+.col-config .col-menu { left: auto; right: 0; top: calc(100% + 4px); }
+.col-config.menu-open .col-menu { display: block; }
+.table th.hidden-col, .table td.hidden-col { display: none; }
+.table td {
+  padding: var(--table-padding-v) var(--table-padding-h);
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+  border-bottom: 1px solid var(--border-table); height: var(--table-cell-h);
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: var(--bg-hover); }
+.table tr.selected td, .table tr.selected:hover td { background: var(--bg-focus); }
+
+/* checkbox 欄 */
+.table .cb-cell { width: 56px; padding-left: var(--space-s); padding-right: 0; white-space: nowrap; }
+.table .cb-cell input { vertical-align: middle; }
+.table .cb-cell .expander { vertical-align: middle; }
+.table .expander {
+  background: none; border: none; cursor: pointer; color: var(--text-color);
+  font-size: 16px; width: 16px; margin-right: var(--space-xxs);
+  transition: transform .15s ease;
+}
+.table .expander.open { transform: rotate(90deg); }
+.table .expander.leaf { visibility: hidden; }
+.table tr.child td:first-child { padding-left: 48px; }
+.table tr.child.lvl3 td:first-child { padding-left: 72px; }
+/* 子欄位小標頭：高度刻意比表頭(34)、資料列(40)都矮 → 三種高度不一致 */
+.table tr.subheader td {
+  background: var(--bg-hover); height: auto;
+  padding: var(--space-xxs) var(--table-padding-h);
+  font: var(--weight-semibold) var(--text-caption2); color: var(--text-disable);
+}
+.table tr.subheader td:first-child { padding-left: 48px; }
+.table tr.collapsed { display: none; }
+/* 分組小標列（例：「密碼資產」「識別」）：上下左右內距跟資料列一樣 8／12，不縮排 */
+.table tr.group-row > td {
+  padding: var(--table-padding-v) var(--table-padding-h); height: auto;
+  background: var(--bg-hover); font: var(--weight-semibold) var(--text-caption); color: var(--text-color);
+}
+.table tbody tr.group-row:hover td { background: var(--bg-hover); }
+/* 長表格：比畫面高時在表格內捲動，表頭固定在上方。高度用 --table-max-h 調整 */
+.table.scroll-y { max-height: var(--table-max-h, 480px); overflow-y: auto; }
+.table.scroll-y > table > thead > tr > th { position: sticky; top: 0; z-index: 3; }
+.table.scroll-y > table > thead > tr > th.sticky-l, .table.scroll-y > table > thead > tr > th.sticky-r { z-index: 4; }
+
+/* 可展開母列：整個第一欄儲存格＋帶 .row-toggle 的元素都能觸發展開（箭頭只當狀態指示） */
+.table tr[data-group] > td:first-child:has(.expander:not(.leaf)) { cursor: pointer; }
+.table tr[data-group] > td:first-child:has(.expander:not(.leaf)):hover { color: var(--text-link); }
+.table .row-toggle { cursor: pointer; }
+
+/* ---------- 巢狀子表格（子層欄位跟母層不同 → 獨立一張表，欄寬不受母層限制） ---------- */
+/* 子表區用正常表格底色，不填灰。只有子標頭那條保留灰（跟主表頭一致） */
+.table tr.subrow > td { padding: 0; background: var(--bg-default); }
+/* 縮排 20px：對齊母層「文字」起點，不是母層儲存格邊界（母層邊界前面還有一顆展開箭頭）。
+   縮排放在第一欄儲存格的 padding，不放容器 —— 容器 padding 會讓列與列之間的線（td border-bottom）從 20px 才開始 */
+.table .subtable { position: relative; padding-left: 0; }
+/* 子標頭那條灰底通版鋪滿（含縮排區），不然左側對齊母層第一欄會留白斷開 */
+.table .subtable::before {
+  content: ""; position: absolute; left: 0; top: 0; right: 0; height: 26px;
+  background: var(--table-title-bg); border-bottom: 1px solid var(--border-table);
+}
+/* table 本身透明，白底改放 td 上 —— 不然 table 的不透明底會蓋掉 ::before 那條灰（兩個都是
+   position:relative，同層時後面的 DOM 蓋前面，table 在 ::before 之後） */
+.table .subtable > table { position: relative; width: 100%; table-layout: auto; border-collapse: collapse; background: transparent; }
+.table .subtable th {
+  position: relative; height: 26px; background: transparent; text-align: left; white-space: nowrap;
+  padding: var(--space-xxs) var(--table-padding-h);
+  font: var(--weight-semibold) var(--text-caption2); color: var(--text-disable);
+}
+.table .subtable th :is(.fa-solid, svg) { font-size: 8px; color: var(--text-disable); margin-left: 4px; cursor: pointer; }
+.table .subtable td {
+  padding: var(--table-padding-v) var(--table-padding-h); height: var(--table-cell-h);
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+  background: var(--bg-default); border-bottom: 1px solid var(--border-table);
+}
+.table .subtable th:first-child, .table .subtable td:first-child { padding-left: calc(20px + var(--table-padding-h)); }
+.table .subtable tbody tr:last-child td { border-bottom: none; }
+.table .subtable tbody tr:hover td { background: var(--bg-hover); }
+.table .subtable tr.selected td { background: var(--bg-focus); }
+.table .subtable .cb-cell { width: 48px; }
+/* 子內容固定在表格可視寬度內：母表格橫向捲動時子內容不跟著跑，子表格自己左右捲。
+   --table-view-w 由 kit.js 寫成母表格的可視寬度 */
+.table.cols-fixed.scroll-x > table > tbody > tr.subrow > td { overflow: visible; }   /* td 的 overflow:hidden 會讓 sticky 失效 */
+.table.scroll-x tr.subrow .subtable { position: sticky; left: 0; width: var(--table-view-w, 100%); overflow-x: auto; }
+.table.scroll-x tr.subrow .subtable::before { display: none; }
+.table.scroll-x tr.subrow .subtable th { background: var(--table-title-bg); border-bottom: 1px solid var(--border-table); }
+/* 展開列只有一筆補充資料：兩欄定義列表，左緣對齊母列的名稱欄（56 = 展開欄寬） */
+.table tr.subrow > td > .subrow-body { padding: var(--space-m) var(--table-padding-h) var(--space-m) calc(56px + var(--table-padding-h)); }
+/* 子內容裡的按鈕跟子表格隔 16；整塊子內容與表格邊框之間用 .subrow-body 留 16 */
+.table .subtable + .subtable-actions { margin-top: var(--space-m); }
+.table .subtable-actions { display: flex; gap: var(--space-xs); padding: 0 var(--table-padding-h) var(--space-m); }
+
+/* 操作欄：純文字連結，semibold，依動作類型配色 */
+.row-actions { display: flex; gap: var(--space-s); }
+.row-action { font: var(--weight-semibold) var(--text-caption); cursor: pointer; white-space: nowrap; }
+.row-action.detail { color: var(--text-link); }   /* 詳細資訊 / 查看 */
+.row-action.action { color: var(--info-500); }    /* 編輯 / 一般操作 */
+.row-action.danger { color: var(--danger-500); }  /* 刪除 / 移除 */
+/* hover：不加底線，直接換成該動作的 hover 色 */
+.row-action.detail:hover { color: var(--btn-hover); }
+.row-action.action:hover { color: var(--btn-info-hover); }
+.row-action.danger:hover { color: var(--btn-danger-hover); }
+
+/* ---------- Tag ---------- */
+.tag {
+  display: inline-flex; align-items: center; gap: var(--space-xxs);
+  padding: 2px var(--space-xxs); border-radius: var(--radius-card);
+  font: var(--weight-semibold) var(--text-caption2);
+}
+.tag-m { padding: 2px var(--space-xs); font: var(--weight-semibold) var(--text-caption); }
+.tag-l { padding: var(--space-xxs) var(--space-s); font: var(--weight-semibold) var(--text-caption); }
+.tag-critical { color: var(--tag-purple-text); background: var(--tag-purple-bg); }
+.tag-danger   { color: var(--tag-red-text);    background: var(--tag-red-bg); }
+.tag-warning  { color: var(--tag-yellow-text); background: var(--tag-yellow-bg); }
+.tag-success  { color: var(--tag-green-text);  background: var(--tag-green-bg); }
+.tag-info     { color: var(--tag-blue-text);   background: var(--tag-blue-bg); }
+.tag-gray     { color: var(--tag-gray-text);   background: var(--tag-gray-bg); }
+
+/* 狀態點：整顆 tag 維持灰底 fill，狀態意義用尾端色點表達（對齊 Figma 7006-37094）。
+   不要退化成「裸色點 + 純文字」—— 只要有色點就包成 tag */
+.tag .tag-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; margin-left: var(--space-xxs); }
+.tag-dot.critical { background: var(--critical-500); }
+.tag-dot.danger   { background: var(--danger-500); }
+.tag-dot.warning  { background: var(--warning-500); }
+.tag-dot.success  { background: var(--success-500); }
+.tag-dot.info     { background: var(--info-500); }
+.tag-dot.off      { background: var(--text-disable); }
+
+/* .status-cell：上面那顆 tag 的簡寫（灰底 tag ＋ 尾端色點，dot 寫在文字前也 OK） */
+.status-cell {
+  display: inline-flex; align-items: center; gap: var(--space-xxs); flex-direction: row-reverse;
+  padding: 2px var(--space-xs); border-radius: var(--radius-card);
+  background: var(--tag-gray-bg); color: var(--tag-gray-text);
+  font: var(--weight-semibold) var(--text-caption2);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.status-on .status-dot  { background: var(--success-500); }
+.status-off .status-dot { background: var(--text-disable); }
+
+/* Token 插入清單：一排灰底 tag，點一下把值插進「目前輸入框」游標處（變數插入 / 罐頭語…）。
+   插入邏輯 kit.js 自動綁；容器加 data-target="#id" 可指定目標，否則插進最後聚焦的輸入框。
+   token 顯示文字 ≠ 插入值時，用 <span class="token" data-value="{{規則名稱}}">規則名稱</span> */
+.token-list { display: flex; flex-wrap: wrap; gap: var(--space-xxs); }
+.token {
+  cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: var(--space-xxs);
+  padding: 2px var(--space-xs); border-radius: var(--radius-card);
+  background: var(--tag-gray-bg); color: var(--tag-gray-text);
+  font: var(--weight-semibold) var(--text-caption2);
+}
+.token:hover { background: var(--table-title-bg-active); }
+.token .fa-solid { font-size: 8px; color: var(--text-disable); }
+
+/* ---------- Tooltip（Figma Unixecure-Design 639:3791，距目標物件 4px） ---------- */
+/* 深底白字，深色模式反過來（白底、--gray-800 字）。內距 8／12、圓角 4、單行不換行、下方帶 12px 寬小三角 */
+.tip { --tip-bg: var(--gray-900); --tip-fg: var(--text-on-primary); position: relative; display: inline-flex; }
+:root[data-theme="dark"] .tip { --tip-bg: var(--text-color); --tip-fg: var(--gray-800); }
+.tip:hover::after, .tip:hover::before { position: absolute; z-index: 30; background: var(--tip-bg); pointer-events: none; }
+.tip:hover::after {
+  content: attr(data-tip); bottom: calc(100% + var(--space-xxs) + 9.5px); left: 50%; transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-s); border-radius: var(--radius-card);
+  color: var(--tip-fg); font: var(--weight-regular) var(--text-body); white-space: nowrap;
+}
+.tip:hover::before {
+  content: ""; bottom: calc(100% + var(--space-xxs)); left: 50%; transform: translateX(-50%);
+  width: 12px; height: 9.5px; clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.tip.tip-left:hover::after  { left: 0; transform: none; }
+.tip.tip-left:hover::before { left: var(--space-s); transform: none; }
+.tip.tip-right:hover::after  { left: auto; right: 0; transform: none; }
+.tip.tip-right:hover::before { left: auto; right: var(--space-s); transform: none; }
+/* disabled 的 button 收不到 mouse 事件，所以外包一層 .tip；加 .tip-if-disabled 就只在裡面元件 disabled 時才顯示 */
+.tip.tip-if-disabled:not(:has(> :disabled)):hover::after,
+.tip.tip-if-disabled:not(:has(> :disabled)):hover::before { content: none; display: none; }
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: inline-flex; align-items: stretch; height: 40px; margin-top: var(--space-xs);
+  background: var(--bg-default); border-radius: var(--radius-btn);
+  font: var(--weight-semibold) var(--text-caption); color: var(--text-color);
+}
+.pagination .page {
+  display: flex; align-items: center; gap: var(--space-xxs);
+  padding: 0 var(--space-s); border-radius: var(--radius-btn); color: inherit;
+}
+.pagination .page .fa-solid { font-size: 12px; }
+.pagination .page.current { background: var(--bg-actived); }
+.pagination .page:not(.current):hover { color: var(--text-link); }
+.pagination .jump {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: 0 var(--space-xs); font-weight: var(--weight-regular); color: var(--text-color);
+}
+.pagination .jump .mini-input {
+  width: 60px; height: 32px; border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  background: var(--bg-default); padding: var(--space-xxs) var(--space-xs);
+  display: flex; align-items: center; justify-content: space-between;
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+}
+.pagination .jump .mini-input .fa-solid { font-size: 12px; color: var(--text-disable); }
+
+/* ---------- KPI 卡片 ---------- */
+.kpi-row { display: flex; gap: var(--space-xs); }
+.kpi-row > .kpi { flex: 1; }
+.kpi {   /* 對齊 Q-Atlas 回報的 Figma Chart/number：圓角 8（Aimi 統一）、內距 8/16、高 88 */
+  background: var(--bg-actived); border-radius: var(--radius-stat);
+  padding: var(--space-xs) var(--space-m); min-height: 88px;
+  display: flex; flex-direction: column; justify-content: center; gap: var(--space-xxs);
+}
+.kpi .kpi-label { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.kpi .kpi-num { font: var(--weight-semibold) var(--text-heading); color: var(--primary-700); }
+.kpi .kpi-num.is-danger { color: var(--danger-500); }
+.kpi .kpi-num.is-warning { color: var(--warning-500); }
+.kpi .kpi-num.is-success { color: var(--success-500); }
+.kpi .kpi-unit { font: var(--weight-regular) var(--text-caption2); }   /* 單位、總數（/ 12） */
+.kpi .kpi-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-xs); }   /* 數字＋右側灰字短註 */
+.kpi .kpi-sub { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
+
+/* ---------- 圖表卡（原型：靜態示意，不接圖表庫） ---------- */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-m); }
+.chart-card {
+  background: var(--bg-default); border-radius: var(--radius-stat);
+  padding: var(--space-xs) var(--space-xs) var(--space-m);   /* 上/左右 8、下 16，對齊 Figma 1233:13945，不是四邊等寬 */
+  display: flex; flex-direction: column;
+}
+/* 圖表本體吃掉多餘高度（同排等高時內容置中，不留一坨白） */
+.chart-card > .chart-area,
+.chart-card > .chart-donut-wrap,
+.chart-card > .chart-bars,
+.chart-card > .heatmap { flex: 1 1 auto; }
+.chart-card > .chart-donut-wrap { align-items: center; }
+/* card header：標題與右上工具 icon 垂直置中，各卡一致 */
+.chart-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-s); margin-bottom: var(--space-m); flex: 0 0 auto;
+}
+.chart-head h3 { font: var(--weight-semibold) var(--text-body); }
+/* .stat-toggle 放進 .chart-head 取代 h3 標題時，字級跟旁邊卡片的標題（16px）一致，不然小一階 */
+.chart-head .stat-toggle-item { font: var(--weight-regular) var(--text-body); }
+.chart-head .stat-toggle-item.active { font-weight: var(--weight-semibold); }
+/* card header 右上：一排灰色功能 icon（檢視切換 / 展開 / 更多） */
+.chart-head .tools { display: flex; align-items: center; gap: var(--space-s); color: var(--text-disable); font-size: 14px; flex-shrink: 0; }
+.chart-head .tools > * { cursor: pointer; }
+.chart-head .tools .fa-solid:hover { color: var(--text-color); }
+.chart-head .tools a { font: var(--weight-semibold) var(--text-caption); color: var(--text-link); }
+.chart-ph {
+  height: 180px; border-left: 1px solid var(--border-table); border-bottom: 1px solid var(--border-table);
+  display: flex; align-items: flex-end; gap: var(--space-s); padding: var(--space-s);
+}
+.chart-ph .bar { flex: 1; background: var(--chart-1); border-radius: 2px 2px 0 0; }
+
+/* card header 內的小分頁（同一份資料兩種切法） */
+.card-tabs { display: flex; gap: var(--space-m); }
+.card-tab {
+  font: var(--weight-regular) var(--text-caption); color: var(--text-disable);
+  padding-bottom: 2px; border-bottom: 2px solid transparent; cursor: pointer;
+}
+.card-tab.active { color: var(--text-color); font-weight: var(--weight-semibold); border-bottom-color: var(--primary-700); }
+
+/* ---------- 儀表板（範式 E：全部鋪灰底，不用單張 Sheet） ---------- */
+/* 篩選列：直接鋪灰底、無白底。輕量文字控制項（chip 去背）＋ 右側進階篩選 icon */
+.dash-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-s) var(--space-m); margin-bottom: var(--space-m); }
+.dash-filters .spacer { margin-left: auto; }
+.dash-filters .chip.setting {
+  background: transparent; padding: 0; font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+}
+.dash-filters .chip.setting.open { background: transparent; color: var(--text-link); }
+.dash-filters .chip.setting .fa-solid { font-size: 10px; }
+.dash-filters .chip-menu { font-weight: var(--weight-regular); }
+.dash-filters .checkbox-row { color: var(--text-color); }
+
+/* KPI 卡：白底 + 輕陰影，無框（鋪在灰底上） */
+.kpi-row.raised > .kpi { background: var(--bg-default); box-shadow: var(--shadow-normal); }
+
+/* 圖表 grid：6 欄底，卡片用 span-* 自由拼。卡片間距一律 8；同一排等高 */
+.dash-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-xs); align-items: stretch; margin-top: var(--space-xs); }
+.dash-grid > * { grid-column: span 6; }        /* 預設整排寬 */
+.dash-grid .span-2 { grid-column: span 2; }
+.dash-grid .span-3 { grid-column: span 3; }
+.dash-grid .span-4 { grid-column: span 4; }
+.dash-grid .span-6 { grid-column: span 6; }
+/* 儀表板圖表卡統一：白底、無框、無陰影，靠 8px 灰底間隙分隔 */
+.dash-grid .chart-card, .dash-grid .card { border: none; box-shadow: none; }
+@media (max-width: 960px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-grid > *, .dash-grid .span-2, .dash-grid .span-3, .dash-grid .span-4 { grid-column: auto; }
+}
+
+/* 圖表示意：全部靜態，用 CSS / inline SVG 排長相，資料寫死 */
+.chart-area { width: 100%; height: 180px; display: block; }
+.chart-area .fill { fill: var(--chart-1); opacity: .12; }
+.chart-area .stroke { fill: none; stroke: var(--chart-1); stroke-width: 2; }
+.chart-area .grid { stroke: var(--border-table); stroke-width: 1; }
+
+.chart-donut-wrap { display: flex; align-items: center; gap: var(--space-xl); }
+.chart-donut {
+  width: 132px; height: 132px; border-radius: 50%; flex-shrink: 0;
+  -webkit-mask: radial-gradient(circle 38px at center, transparent 98%, #000 100%);
+          mask: radial-gradient(circle 38px at center, transparent 98%, #000 100%);
+}
+.chart-legend { display: flex; flex-direction: column; gap: var(--space-xs); }
+.chart-legend .lg { display: flex; align-items: center; gap: var(--space-xs); font: var(--weight-regular) var(--text-caption); }
+.chart-legend .lg .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.chart-legend .lg .val { margin-left: auto; color: var(--text-disable); font-weight: var(--weight-semibold); }
+
+/* 圓餅圖 corner 版（Figma 8626:99357）：只有圖表區有 Tabletitle 灰底、donut 真置中、圖例貼右上、比率貼右下。預設並排版不動 */
+.chart-donut-wrap.is-corner {
+  position: relative; height: 200px; background: var(--table-title-bg); border-radius: var(--radius-card);
+}
+.chart-donut-wrap.is-corner .chart-donut { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.chart-donut-wrap.is-corner .chart-legend {
+  position: absolute; top: var(--space-xs); right: var(--space-xs);
+  flex-direction: column; gap: var(--space-xxs); opacity: .8;
+}
+.chart-donut-wrap.is-corner .chart-legend .lg { gap: 2px; font: var(--weight-regular) var(--text-caption2); }
+.chart-donut-wrap.is-corner .chart-legend .lg .dot { width: 12px; height: 12px; }
+.chart-donut-wrap.is-corner .chart-rate {
+  position: absolute; bottom: var(--space-xs); right: var(--space-xs);
+  font: var(--weight-regular) var(--text-caption2); color: var(--text-disable);
+}
+.chart-card:has(> .chart-donut-wrap.is-corner) .chart-head { margin-bottom: var(--space-xs); }
+
+.chart-bars { display: flex; align-items: flex-end; gap: var(--space-s); height: 168px; padding-top: var(--space-s); }
+.chart-bars .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: var(--space-xxs); height: 100%; }
+.chart-bars .col .bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--chart-1); }
+.chart-bars .col .lbl { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); text-align: center; }
+
+.heatmap { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.heatmap i { aspect-ratio: 1; border-radius: 2px; background: var(--bg-hover); display: block; }
+.heatmap i.l1 { background: var(--warning-300); }
+.heatmap i.l2 { background: var(--warning-500); }
+.heatmap i.l3 { background: var(--danger-500); }
+.heatmap i.l4 { background: var(--critical-500); }
+.heatmap-scale { display: flex; align-items: center; gap: var(--space-xxs); margin-top: var(--space-s); font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
+.heatmap-scale i { width: 12px; height: 12px; border-radius: 2px; display: block; }
+
+/* ---------- Modal ---------- */
+.overlay {
+  position: fixed; inset: 0; background: var(--overlay);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+}
+.overlay.open { display: flex; }
+.modal {
+  width: 560px; max-height: 720px; display: flex; flex-direction: column;
+  background: var(--bg-default); border-radius: var(--radius-card); box-shadow: var(--shadow-normal);
+  overflow: hidden;
+}
+.modal.modal-wide { width: 955px; max-width: 100vw; }
+.modal-header {
+  padding: var(--space-m); font: var(--weight-semibold) var(--text-subheading);
+  border-bottom: 1px solid var(--border-table);
+}
+.modal-header.is-danger { color: var(--danger-500); }
+.modal-body { padding: var(--space-m); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-m); }
+/* footer 只有一條分隔線，沒有底色 */
+.modal-footer {
+  padding: var(--space-s) var(--space-m); display: flex; justify-content: flex-end; gap: var(--space-xs);
+  border-top: 1px solid var(--border-table);
+}
+
+/* ---------- Drawer（右側抽屜） ---------- */
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100vh; width: 400px; z-index: 55;
+  background: var(--bg-default); box-shadow: var(--shadow-normal);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .2s ease;
+}
+.drawer.open { transform: translateX(0); }
+/* 抽屜兩種寬度：只有欄位 400（預設）、有表格 955（沿用跳窗最大寬） */
+.drawer.drawer-wide { width: 955px; max-width: 100vw; }
+.drawer-header {
+  padding: var(--space-m); display: flex; align-items: center; justify-content: space-between;
+  font: var(--weight-semibold) var(--text-subheading); border-bottom: 1px solid var(--border-table);
+}
+.drawer-header .close { cursor: pointer; color: var(--text-disable); font-size: 16px; background: none; border: none; }
+.drawer-body { padding: var(--space-m); overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: var(--space-m); }
+.drawer-footer {
+  padding: var(--space-s) var(--space-m); display: flex; justify-content: flex-end; gap: var(--space-xs);
+  border-top: 1px solid var(--border-table);
+}
+
+/* ---------- Footer ---------- */
+/* RAVEN / MOC 用 footer/moc 深色；BASE 產品 <body class="theme-base"> 改用 --footer-bg 淺色 */
+.footer {
+  background: var(--gray-700); color: #fff;
+  flex: none; min-height: 42px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-xl); font: var(--weight-regular) var(--text-caption2);
+}
+.theme-base .footer { background: var(--footer-bg); color: var(--footer-text); }
+
+/* ---------- 施工中（新頁殼未填內容時的暫時樣式） ---------- */
+.wip { padding: var(--space-big); text-align: center; color: var(--text-disable); }
+.wip .fa-solid { font-size: 32px; margin-bottom: var(--space-s); }
+.wip p { font: var(--weight-regular) var(--text-body); }
+
+/* ---------- Skeleton（骨架屏）：灰底 + 單向循環的掃動，無 blur ---------- */
+.skeleton {
+  background: linear-gradient(100deg,
+    var(--bg-hover) 40%, var(--bg-actived) 50%, var(--bg-hover) 60%);
+  background-size: 220% 100%;
+  animation: skeleton-sweep 1.4s linear infinite;
+  border-radius: var(--radius-btn);
+  color: transparent !important;
+  pointer-events: none; user-select: none;
+}
+.skeleton * { visibility: hidden; }
+@keyframes skeleton-sweep { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+/* 常見尺寸：一行文字 / 一段（多行寬度遞減） */
+.skeleton-line { display: block; height: 14px; margin: 5px 0; }
+.skeleton-line:last-child { width: 60%; }
+/* 表格 skeleton：整格套 .skeleton，或用 td.is-loading 讓每格內生一條 */
+.table td.is-loading { position: relative; }
+.table td.is-loading > * { visibility: hidden; }
+.table td.is-loading::after {
+  content: ""; position: absolute; left: var(--table-padding-h); right: var(--table-padding-h);
+  top: 50%; height: 12px; transform: translateY(-50%);
+  background: linear-gradient(100deg, var(--bg-hover) 40%, var(--bg-actived) 50%, var(--bg-hover) 60%);
+  background-size: 220% 100%; border-radius: var(--radius-btn);
+  animation: skeleton-sweep 1.4s linear infinite;
+}
+
+/* ---------- Stepper（步驟指示，對齊 Figma 6227-45240）---------- */
+/* 用法：<ol class="stepper"> 內每步一個 <li class="step">。
+   狀態 class：
+     （無）  未進行 —— 灰色實心圓 + 白數字
+     current 進行中 —— 深色實心圓 + 白數字
+     done    已完成 —— 綠色圓 + 白勾，其後連接線轉綠
+     done plain  已完成但保留號碼（深色描邊圈，適合「可點回去修改」）
+   垂直版 <ol class="stepper vertical">：依 Figma 不畫連接線，只留間距 */
+.stepper {
+  display: flex; align-items: center;
+  list-style: none; margin: 0; padding: 0;
+}
+.stepper .step {
+  display: flex; align-items: center; gap: var(--space-xs);
+  flex: 1; min-width: 0;
+}
+.stepper .step:last-child { flex: none; }
+.stepper .step:not(:last-child)::after {
+  content: ""; flex: 1; height: 2px;
+  margin: 0 var(--space-m); border-radius: 20px;
+  background: var(--border-default);
+}
+.stepper .step.done:not(:last-child)::after { background: var(--btn-success); }
+
+.stepper .step-dot {
+  flex: none; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-content: center;
+  font: var(--weight-semibold) var(--text-caption2);
+  background: var(--text-disable); color: var(--bg-default);
+}
+.stepper .step-dot i { font-size: 11px; }
+.stepper .step.current .step-dot { background: var(--text-color); }
+.stepper .step.done .step-dot { background: var(--btn-success); }
+.stepper .step.done.plain .step-dot {
+  background: transparent; color: var(--text-color);
+  border: 1.5px solid var(--text-color);
+}
+
+.stepper .step-label {
+  font: var(--weight-semibold) var(--text-body);
+  color: var(--text-disable); white-space: nowrap;
+}
+.stepper .step.done .step-label,
+.stepper .step.current .step-label { color: var(--text-color); }
+
+.stepper.vertical { flex-direction: column; align-items: flex-start; gap: var(--space-m); }
+.stepper.vertical .step { flex: none; }
+.stepper.vertical .step:not(:last-child)::after { display: none; }
+
+/* ---------- DatePicker（日期時間選擇器，對齊 Figma 1739-10631）---------- */
+/* 觸發欄位當作「值的選擇」，給藍紫外框（同 focus input）。面板同一套外框。
+   用法：
+     <div class="date-field" data-toggle="#dp1">
+       <input type="text" readonly placeholder="請選擇日期">
+       <i class="fa-regular fa-calendar"></i>
+     </div>
+     <div class="datepicker" id="dp1" hidden
+          data-month="2023-07" data-months="2" data-range data-time></div>
+   月曆格由 kit.js 依 data-* 生成：
+     data-month="YYYY-MM"  初始月份（預設本月）
+     data-months="2"       雙月並排（共用外層 ‹ ›）
+     data-range            區間選取（欄位顯示 開始 ｜ 結束）
+     data-time             下方加時間列；搭配 data-range 時多一排「開始時間 / 結束時間」小字
+   純呈現：選日期會標記 + 寫回欄位，不做過去日期禁選 / 嚴謹校驗 */
+.date-field {
+  display: inline-flex; align-items: center; gap: var(--space-s);
+  min-width: 240px; padding: var(--space-xs) var(--space-s);
+  background: var(--bg-default);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-btn);
+  font: var(--weight-regular) var(--text-caption);
+  color: var(--text-color); cursor: pointer;
+}
+.date-field input {
+  flex: 1; min-width: 0; border: 0; padding: 0;
+  background: transparent; font: inherit; color: inherit; cursor: pointer;
+}
+.date-field input::placeholder { color: var(--text-disable); }
+.date-field > i { color: var(--text-disable); font-size: 12px; }
+
+.datepicker {
+  display: inline-flex; flex-direction: column; gap: var(--space-xl);
+  padding: var(--space-m) 0;
+  background: var(--bg-default);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-normal);
+}
+.datepicker.pop { position: fixed; z-index: 60; margin-top: 0; }   /* 固定定位：不被跳窗／捲動區裁切，位置由 kit.js 依輸入框計算 */
+
+.dp-cals { display: flex; }
+.dp-cal { display: flex; flex-direction: column; gap: var(--space-xs); padding: 0 var(--space-xl); }
+
+.dp-head { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.dp-head .dp-title { font: var(--weight-semibold) var(--text-caption); }
+.dp-nav {
+  border: 0; background: transparent; cursor: pointer;
+  min-height: 32px; padding: var(--space-xxs) var(--space-s);
+  color: var(--text-color); font-size: 12px; border-radius: var(--radius-btn);
+}
+.dp-nav:hover { background: var(--bg-hover); }
+.dp-nav.ghost { visibility: hidden; }
+
+.dp-grid { display: grid; grid-template-columns: repeat(7, 32px); gap: var(--space-xs); }
+.dp-dow {
+  height: 24px; display: grid; place-content: center;
+  font: var(--weight-semibold) var(--text-caption); color: var(--text-disable);
+}
+.dp-day {
+  width: 32px; height: 32px; display: grid; place-content: center;
+  border: 0; background: transparent; cursor: pointer;
+  font: var(--weight-semibold) var(--text-caption); color: var(--text-color);
+  border-radius: var(--radius-btn);
+}
+.dp-day:hover { background: var(--bg-hover); }
+.dp-day.today { color: var(--btn-default); }
+.dp-day.in-range { background: var(--bg-actived); border-radius: 0; }
+.dp-day.sel,
+.dp-day.range-start,
+.dp-day.range-end { background: var(--btn-default); color: #fff; }
+.dp-day.empty { visibility: hidden; }
+
+.dp-time { display: flex; flex-direction: column; gap: var(--space-xs); }
+.dp-time > hr { width: 100%; height: 1px; border: 0; background: var(--border-default); margin: 0; }
+.dp-time-labels,
+.dp-time-row { display: flex; gap: 48px; padding: 0 var(--space-xl); }
+.dp-time-labels span { flex: 1; font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
+.dp-time-group { flex: 1; display: flex; gap: var(--space-m); }
+.dp-time-input {
+  flex: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-xxs) var(--space-xs);
+  border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  font: var(--weight-regular) var(--text-caption); color: var(--text-disable);
+}
+.dp-time-input i { font-size: 12px; }
+
+/* ---------- 原生下拉（<select>）：右側留 36 放系統箭頭 ---------- */
+select.input-native {
+  appearance: none; -webkit-appearance: none; height: 40px; width: 100%;
+  padding: 0 36px 0 var(--space-s); border: 1px solid var(--border-default); border-radius: var(--radius-btn);
+  background: var(--bg-default) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  font: var(--weight-regular) var(--text-caption); color: var(--text-color);
+}
+select.input-native:hover { border-color: var(--border-hover); }
+
+/* ---------- 水平時間軸（處理歷程）：每個節點下面依序是動作、人、時間（到分鐘） ---------- */
+.timeline-h { display: flex; list-style: none; }
+.timeline-h > li { position: relative; flex: 1 1 0; min-width: 120px; padding-top: var(--space-m); }
+.timeline-h > li::before {   /* 節點到下一個節點的連線 */
+  content: ""; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: var(--border-default);
+}
+.timeline-h > li:last-child::before { display: none; }
+.timeline-h > li::after {    /* 節點 */
+  content: ""; position: absolute; top: 0; left: 0; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--primary-700);
+}
+.timeline-h .tl-action { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
+.timeline-h .tl-who { font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
+.timeline-h .tl-time { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }

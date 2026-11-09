@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VulnEye｜掃描作業</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../assets/kit.css">
+<script src="https://kit.fontawesome.com/ad292225f2.js" crossorigin="anonymous"></script>
+<style>
+  /* VulnEye 的頁面標題統一 24px（Aimi 拍板，詳情頁也是 24px），不用 kit .page-head h1 預設的 30px */
+  .page-head h1 { font: var(--weight-semibold) var(--text-subheading); }
+</style>
+<!--
+  「狀態」篩選按鈕跟著下面「掃描狀態」欄的顏色（tag-success/tag-info/tag-danger）走，
+  選中時文字對應變色（邊框仍統一藍色，跟 kit .view-toggle .btn.btn-primary 一致，不覆蓋）。
+  做法照 kb-list.html 的 .tone-toggle。（2026-09-29 更新）這是第三個用到的頁面，.tone-toggle
+  已收進 kit.css 正式版，本頁原本的 page-local CSS 拿掉改吃 kit，HTML 不用動。
+-->
+
+<!--
+  超規範判斷（給 Aimi 覆核）：
+  1. examples/scan/ 走自帶薄殼 scan-shell.js（見該檔頭註解），不用 assets/shell.js。
+  2. 主管 vibecoding 版把掃描作業列成自由卡片 + 浮動 tag，這裡改回範式 A：
+     filter chip + table/5，操作收右欄純文字連結。
+  3. 掃描名稱移到第一欄並凍結、操作欄移到最後並凍結，對齊元件庫 1676-11207。
+     （2026-09-11 更新）當時 kit.css 沒有凍結欄位這個元件、本頁自己寫了 CSS + script，
+     回報後已回寫進 kit（.table.scroll-x + .sticky-l/.sticky-r，kit.js 處理捲動陰影），
+     本頁拿掉自己寫的版本，改吃 kit 正式元件。
+  4. 掃描名稱拿掉「‧第 N 次」這種序號——不確定後端真的有這個欄位（跟 scan-detail
+     標題同一個判斷），改成掃描類型 tag（初掃／複掃）+ 完成時間去區分同名的多次掃描，
+     比較貼近「同一個掃描工作、跑很多次」的真實情境。
+  5. 「狀態」改名「掃描狀態」，跟「報告狀態」區分開，避免看不懂是完成了什麼。
+  6. 拿掉「弱點分佈」「校對進度」兩欄——這兩個是弱點層級的資訊，進到 scan-detail.html
+     才看得到明細，列表頁只留掃描本身的狀態欄位。
+  7.（2026-09-11 更新）toolbar-actions 按鈕（重新整理／上傳掃描）補上 .btn-sm——
+     kit 這條規則（列表頁右上角按鈕統一 S）是稍早 commit d7abfe1 加的，回顧 kit 更新時
+     漏看了這條，Aimi 抓到後補上。
+  8.（2026-09-11 更新）補上 .btn-sm 後 Aimi 發現按鈕跟左邊「共 N 筆」/chip 沒有垂直
+     對齊。查出來是 kit.css 的 .toolbar 本身用 align-items:flex-start，toolbar-left
+     跟 toolbar-actions 兩側天生高度不同（chip 列矮、按鈕列高），頂部對齊就會看起來按鈕
+     偏低。這是 kit 共用元件的問題，list.html 官方範例應該也會中——本頁補
+     .toolbar{align-items:center} 局部修正，沒動 assets/kit.css，建議回寫。
+  9.（2026-09-14 更新）篩選列跟表格、表格跟分頁之間留白 Aimi 覺得太大——kit.css
+     這兩個間距都用 --space-m(16px)，改成 --space-xs(8px)。
+  10.（2026-09-21 更新）第 8、9 條兩個本頁補丁（.toolbar 垂直置中、篩選列／分頁 8px 留白）
+     kit 都已收進（b5a060f、aa18f1c），本頁的 <style> 整段拿掉，直接吃 kit 預設。
+  11.（2026-09-22 更新）第一列「報告狀態」從「待確認」改成「潤飾中」——Aimi 指出這欄
+      跟 scan-detail.html「本次報告」分頁的三步驟（①產生草稿／②下載潤飾／③上傳最終版）
+      對不起來，「待確認」看不出卡在哪一步。這一列現在對應的 scan-detail.html demo 資料
+      改成複掃 第 2 次（見 scan-detail.html 第 46 條），該頁「本次報告」目前停在步驟②
+      進行中，「潤飾中」直接借用步驟②的狀態字，兩邊終於看得出是同一件事。其餘三列
+      （待送出／未開始）本來就跟三步驟的邏輯（已完成整套流程待送出客戶／掃描還沒完成
+      report 還沒開始）對得上，沒有改。
+  12.（2026-09-24 更新）「檢測類型」「狀態」兩顆下拉 chip 改成跟 scan-detail.html 校對狀態
+      同款的並排按鈕（view-toggle，Aimi 要求）。各自帶不同的 data-view-group（scan-type／
+      scan-status）避免以後頁面加其他 view-toggle 時互相干擾；純示範用，沒有真的套用篩選。
+      「年度」維持下拉 chip 沒動（Aimi 只提到這兩個）。
+  13.（2026-09-24 更新）兩顆 view-toggle 從 toolbar 裡搬到最上面獨立一排（Aimi 要求跟其他
+      列表頁一致），對齊 kb-list.html「掃描工具／審閱狀態／風險等級」、scan-detail.html
+      「依主機／依弱點」的排法：view-toggle 一排在最上面、toolbar（共 N 筆＋其餘 chip＋
+      操作按鈕）在下面一排。「年度」chip 留在 toolbar-left 裡。
+  14.（2026-09-29 更新）kit.css 的 .view-toggle 選中樣式改成空心（Figma 7650:37565，見
+      CLAUDE.md／kit.css 說明），本頁「檢測類型」「狀態」這兩組沒有另外寫覆蓋，自動吃到
+      新樣式，沒有要改的地方。
+  15.（2026-09-29 更新）「掃描狀態」欄從灰底＋色點（已完成/掃描中/解析失敗）改成直接用
+      顏色 tag（tag-success／tag-info／tag-danger，拿掉 tag-dot）。這跟 CLAUDE.md §tag
+      「狀態點型 tag」那條規則（對齊 Figma 7006-37094：靠色點表意時維持灰底、只用尾端
+      色點）方向不同，Aimi 這次明確要這欄改顏色 tag，先只改這一欄（全專案目前也只有
+      這欄在用 tag-dot），還沒動 CLAUDE.md 那條通則，之後若要全面改再回頭處理。
+  16.（2026-09-29 更新）「狀態」篩選按鈕（全部/已完成/掃描中/失敗）改成跟下面「掃描狀態」
+      欄同色（已完成綠／掃描中藍／失敗紅），選中時文字對應變色，邊框維持統一藍色不變
+      （沿用 kb-list.html「風險等級」那套 .tone-toggle，這裡新增一份 page-local CSS，
+      跟 kb-list 那份幾乎一樣，只是 tone 種類不同——第二個地方用到了，值得考慮收進
+      kit.css 統一維護，還沒動）。「檢測類型」（主機弱掃／Web 弱掃）維持中性藍，
+      表格裡沒有對應顏色可以跟。
+  17.（2026-09-30 更新）「檢測類型」「狀態」都拿掉「全部」按鈕（Aimi 指出太長，反正取消
+      選取就等於全部，所有同款元件比照辦理）。改成沒有按鈕永遠選中：選中的按鈕再點一次
+      會取消選取，回到全部都沒選中＝全部。技術上加 `.deselectable` class，用 capture
+      階段的監聽搶在 kit.js 的 `.view-toggle` 監聽之前處理「已選中再點一次」的取消動作，
+      不影響一般 `.view-toggle`。跟 scan-detail.html「校對狀態」、kb-list.html「審閱狀態」
+      同一套 JS，各頁複製一份。
+  18.（2026-09-30 再更新）跟 Aimi 討論後決定分兩種邏輯：只有兩個互斥選項的（檢測類型）
+      維持單選＋可取消；三個以上選項、彼此可以組合看的（狀態）改成真正多選——每顆按鈕
+      只切換自己的選中狀態，可以同時選好幾顆（例如同時看「已完成」跟「失敗」）。技術上
+      新增 `.multi-select` class，完全接管點擊（capture 階段 stopPropagation，不讓
+      kit.js 的單選邏輯跑）。跟 kb-list.html「掃描工具／風險等級」同一套 JS，複製過來的。
+  19.（2026-10-05 更新）操作欄兩項調整（Aimi 覺得顏色太多、太亂）：①拿掉複掃那列的
+      「比對初測」連結（列表頁不放，比對入口留在詳情頁的「與前次比對」分頁）；②「進入」
+      改名「詳細資料」，語意更直白。「重新解析」（解析失敗那列）沒動，它是該列唯一的
+      處理動作。
+  20.（2026-10-30 更新，kit 同步）Sheet 最上方補 `.page-head`（標題＋說明），依 kit 新規範「內容區
+      要放頁面標題」。右上按鈕這次不搬：Aimi 決定只有「影響整個頁面」的按鈕才放頁首右上角，
+      只針對列表的（重新整理、上傳掃描）維持在列表工具列右上方。標題字級頁面局部蓋成 24px
+      （跟詳情頁一致，Aimi 拍板）；標題「掃描作業」跟導覽一致，說明文字是我擬的，待 Aimi 覆核。
+  21.（2026-10-30 更新，kit 第三批規範）並排按鈕只留給「同一份資料換呈現方式」，篩選一律用 chip：
+      「檢測類型」改單選設定型 chip（全部／主機弱掃／Web 弱掃），「狀態」改多選型 chip（勾選後文字
+      彙總，沒勾＝全部），排在「每頁顯示」後面、「年度」前面；原本的 .view-toggle 與 .toolbar-sep
+      （沒有搜尋框，不需要分隔線）拿掉。代價：狀態篩選原本跟「掃描狀態」欄同色的文字上色（第 16 條）
+      沒有了，chip 本身是灰底，kit 沒有帶語意色的 chip，這點待 Aimi 覆核。
+      已確認：掃描名稱欄已是 .sticky-l（可左右捲動的表格一律凍結名稱欄）；頁尾資料時點由 scan-shell.js
+      處理（見該檔）。
+  22.（2026-10-30 更新，Aimi 決定）篩選要不要上色看情境：關鍵的用並排按鈕加顏色，次要的用 chip 加
+      色點。「狀態」是次要篩選，維持多選 chip，下拉選項前面加跟「掃描狀態」欄同色的小色點
+      （已完成綠、掃描中藍、失敗紅，頁面局部 CSS）。取代第 21 條「沒有顏色待覆核」的部分。色點跟文字
+      的距離 8（Aimi 指定），靠 label 本身的 gap 8，色點不另外加 margin。
+  23.（2026-10-30 更新，kit 同步 51bfe7f、b5ba787）.opt-dot 已收進 kit.css，本頁原本的 page-local CSS
+      拿掉改吃 kit；多選型 chip 沒勾時只顯示名稱，「狀態：全部」改成「狀態」。
+  24.（2026-10-30 更新，Aimi 決定）「檢測類型」「狀態」兩組是重要篩選，改回並排按鈕：檢測類型是
+      .view-toggle.deselectable（主機弱掃／Web 弱掃，選中再點取消＝全部），狀態是
+      .view-toggle.tone-toggle.multi-select（已完成綠、掃描中藍、失敗紅，跟「掃描狀態」欄同色，可複選）。
+      放在 chips 前面、以 .toolbar-sep 隔開（沒有搜尋框，所以排最前面）。取代第 21、22 條的 chip 做法，
+      第 23 條提到的狀態 chip 色點因此用不到，本頁沒有 .opt-dot 了；「每頁顯示」「年度」仍是 chip。
+-->
+</head>
+<body data-page="scan-jobs">
+
+<main class="content" hidden>
+  <div class="sheet">
+
+    <div class="page-head">
+      <div class="page-head-row">
+        <h1>掃描作業</h1>
+      </div>
+      <p class="page-desc">管理每一次掃描作業：上傳外部掃描工具的結果檔，校對弱點後產出報告</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="view-toggle deselectable" id="typeToggle" data-view-group="scan-type" role="group" aria-label="檢測類型">
+          <button type="button" class="btn btn-sm btn-secondary" data-view="host">主機弱掃</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-view="web">Web 弱掃</button>
+        </div>
+        <div class="view-toggle tone-toggle multi-select" id="statusToggle" data-view-group="scan-status" role="group" aria-label="狀態">
+          <button type="button" class="btn btn-sm btn-secondary" data-view="done" data-tone="success">已完成</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-view="running" data-tone="info">掃描中</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-view="failed" data-tone="danger">失敗</button>
+        </div>
+        <span class="toolbar-sep"></span>
+        <div class="filter-chips">
+          <span class="chip setting" data-field="每頁顯示">每頁顯示：10 筆 <i class="fa-solid fa-sort"></i>
+            <div class="chip-menu"><div class="current">10 筆</div><div>20 筆</div><div>50 筆</div><div>100 筆</div></div>
+          </span>
+          <span class="chip setting" data-field="年度">年度：2026 <i class="fa-solid fa-sort"></i>
+            <div class="chip-menu"><div class="current">2026</div><div>2025</div><div>全部</div></div>
+          </span>
+        </div>
+        <span class="count-note">共 4 個掃描作業</span>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-rotate"></i>重新整理</button>
+        <button class="btn btn-primary btn-sm" data-open="#uploadScan"><i class="fa-solid fa-upload"></i>上傳掃描</button>
+      </div>
+    </div>
+
+    <div class="table cols-fixed scroll-x">
+      <table>
+        <colgroup>
+          <col style="width:200px">
+          <col style="width:120px">
+          <col style="width:150px">
+          <col style="width:130px">
+          <col style="width:110px">
+          <col style="width:180px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="sticky-l">掃描名稱 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">關鍵字篩選</div>
+                <input class="kw" type="text" placeholder="輸入掃描名稱關鍵字">
+              </div>
+            </th>
+            <th>檢測類型 <i class="fa-solid fa-sort"></i><i class="fa-solid fa-filter"></i>
+              <div class="col-menu">
+                <div class="hint">欄位篩選</div>
+                <label><input type="checkbox"><span>初掃</span></label>
+                <label><input type="checkbox"><span>複掃</span></label>
+              </div>
+            </th>
+            <th>完成時間 <i class="fa-solid fa-sort"></i></th>
+            <th>掃描狀態 <i class="fa-solid fa-sort"></i></th>
+            <th>報告狀態 <i class="fa-solid fa-sort"></i></th>
+            <th class="sticky-r" style="text-align:right">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="sticky-l"><a class="row-action detail" href="scan-detail.html" style="font-weight:var(--weight-regular)">主機弱掃</a></td>
+            <td><span class="tag tag-success">複掃</span></td>
+            <td>2026/09/04 15:50</td>
+            <td><span class="tag tag-success">已完成</span></td>
+            <td><span class="tag tag-info">潤飾中</span></td>
+            <td class="sticky-r"><div class="row-actions" style="justify-content:flex-end">
+              <a class="row-action detail" href="scan-detail.html">詳細資料</a>
+              <span class="row-action danger" data-open="#delScan">刪除</span>
+            </div></td>
+          </tr>
+          <tr>
+            <td class="sticky-l"><a class="row-action detail" href="scan-detail.html" style="font-weight:var(--weight-regular)">主機弱掃</a></td>
+            <td><span class="tag tag-info">初掃</span></td>
+            <td>2026/09/03 11:18</td>
+            <td><span class="tag tag-success">已完成</span></td>
+            <td><span class="tag tag-warning">待送出</span></td>
+            <td class="sticky-r"><div class="row-actions" style="justify-content:flex-end">
+              <a class="row-action detail" href="scan-detail.html">詳細資料</a>
+              <span class="row-action danger" data-open="#delScan">刪除</span>
+            </div></td>
+          </tr>
+          <tr>
+            <td class="sticky-l">Web 弱掃</td>
+            <td><span class="tag tag-info">初掃</span></td>
+            <td>—</td>
+            <td><span class="tag tag-info">掃描中</span></td>
+            <td><span class="tag tag-gray">未開始</span></td>
+            <td class="sticky-r"><div class="row-actions" style="justify-content:flex-end">
+              <span class="row-action detail" style="color:var(--text-disable);cursor:default">詳細資料</span>
+              <span class="row-action danger" data-open="#delScan">刪除</span>
+            </div></td>
+          </tr>
+          <tr>
+            <td class="sticky-l">主機弱掃 · 補掃 AD 網段</td>
+            <td><span class="tag tag-info">初掃</span></td>
+            <td>2026/09/02 09:40</td>
+            <td><span class="tag tag-danger">解析失敗</span></td>
+            <td><span class="tag tag-gray">未開始</span></td>
+            <td class="sticky-r"><div class="row-actions" style="justify-content:flex-end">
+              <span class="row-action action">重新解析</span>
+              <span class="row-action danger" data-open="#delScan">刪除</span>
+            </div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="page current">1</button>
+      <button class="page"><i class="fa-solid fa-angle-right"></i></button>
+      <button class="page"><i class="fa-solid fa-angles-right"></i></button>
+      <span class="jump">跳至
+        <span class="mini-input">1 <i class="fa-solid fa-angle-down"></i></span>
+        頁
+      </span>
+    </div>
+
+  </div><!-- /sheet -->
+</main>
+
+<!-- Modal: 上傳掃描（示意，僅呈現） -->
+<div class="overlay" id="uploadScan">
+  <div class="modal">
+    <div class="modal-header">上傳掃描結果</div>
+    <div class="modal-body">
+      <div class="field">
+        <label>檢測類型 <span class="req">*</span></label>
+        <div class="selector"><span>主機弱掃</span><i class="fa-solid fa-angle-down"></i></div>
+      </div>
+      <div class="field">
+        <label>掃描階段 <span class="req">*</span></label>
+        <div class="choice-group">
+          <label class="radio-row"><input type="radio" name="stage" checked> 初掃</label>
+          <label class="radio-row"><input type="radio" name="stage"> 複掃</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>來源檔 <span class="req">*</span></label>
+        <div class="card" style="text-align:center;padding:var(--space-xl);border-style:dashed">
+          <i class="fa-solid fa-file-arrow-up" style="font-size:24px;color:var(--text-disable)"></i>
+          <p class="help" style="margin-top:var(--space-xs)">拖曳 Nessus / Acunetix 匯出檔到這裡，或點擊選擇（.xlsx / .html / .csv）</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-primary" data-close>開始解析</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認框：刪除掃描（modal 小變體，破壞性紅字） -->
+<div class="overlay" id="delScan">
+  <div class="modal" style="width:440px">
+    <div class="modal-body">
+      <p style="font:var(--weight-semibold) var(--text-body);color:var(--danger-500)">確定要刪除這個掃描作業嗎？</p>
+      <p class="help">刪除後，這次掃描的弱點校對與已產生的報告草稿都會一併移除，無法復原。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>取消</button>
+      <button class="btn btn-danger" data-close>刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="scan-shell.js"></script>
+<script src="../assets/kit.js"></script>
+</body>
+</html>
