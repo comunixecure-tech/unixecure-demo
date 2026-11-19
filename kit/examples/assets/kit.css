@@ -101,7 +101,7 @@ html { scroll-behavior: smooth; }
 .talk-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 0; }   /* 名稱時間列與內文之間 0（2026-11-03 由 4 改 0） */
 .talk-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-xs); width: 100%; }
 .talk-name { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
-.talk.is-unread .talk-name { color: var(--btn-default); }
+.talk.is-unread .talk-name { color: var(--text-link); }
 .talk-time { flex: 1 1 0; min-width: 0; font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }   /* 時間 12／18，三處 Talk 統一（2026-11-03） */
 .talk-action { border-radius: var(--radius-card); }   /* Figma 這顆是 4px，跟一般按鈕的 2px 不同 */
 .talk-body { font: var(--weight-regular) var(--text-caption); color: var(--text-color); }
@@ -358,7 +358,7 @@ html { scroll-behavior: smooth; }
 /* 2026-10-03 Aimi 拍板：表單欄位小標統一 14px Semibold --text-color（原本 Regular，
    跟 CLAUDE.md 之前寫的 16px Semibold 也不同，文件這次一起改，別再照舊的 16px 做） */
 .field > label { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
-.field .req { color: var(--danger-500); }
+.field .req { color: var(--tag-red-text); }
 .input, .selector {
   height: 36px; border: 1px solid var(--border-default); border-radius: var(--radius-btn);
   background: var(--bg-default); color: var(--text-color);
@@ -369,7 +369,7 @@ html { scroll-behavior: smooth; }
 .input:hover, .selector:hover { border-color: var(--border-hover); }
 .input:focus, .input:focus-within, .selector.open { outline: none; border-color: var(--border-hover); }
 .field.error .input { border-color: var(--danger-500); }
-.field.error .hint { color: var(--danger-500); font: var(--weight-regular) var(--text-caption2); }
+.field.error .hint { color: var(--tag-red-text); font: var(--weight-regular) var(--text-caption2); }
 .selector { justify-content: space-between; cursor: pointer; position: relative; }
 .input > .fa-solid, .selector > .fa-solid { font-size: 12px; color: var(--text-disable); }
 .input::placeholder { color: var(--text-disable); }
@@ -423,7 +423,7 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
 /* label 與 36px 控制項（input / selector）垂直置中：pad-top 12 + 行高 24 = 36 */
 /* 同上，表單欄位小標統一 14px Semibold（2026-10-03） */
 .form-ll .ff > label { padding-top: var(--space-s); font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
-.form-ll .ff > label .req { color: var(--danger-500); }
+.form-ll .ff > label .req { color: var(--tag-red-text); }
 /* 控制項只是一行文字（無 input）時，label 與值垂直置中對齊 */
 .form-ll .ff.mid { align-items: center; }
 .form-ll .ff.mid > label { padding-top: 0; }
@@ -434,7 +434,7 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
 .form-ll .ff.wide .ff-control { max-width: none; }
 .form-ll .ff-control .row { display: flex; align-items: center; gap: var(--space-xs); }
 .required-note { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); margin-bottom: var(--space-m); }
-.required-note .req { color: var(--danger-500); }
+.required-note .req { color: var(--tag-red-text); }
 
 /* ---------- toggle switch ---------- */
 .switch { display: inline-flex; align-items: center; min-height: 36px; cursor: pointer; }
@@ -615,12 +615,12 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
    tone 值：neutral（不上色，維持 kit 預設藍）／success／warning／gray／critical／danger／info，
    對應 --{tone}-500。邊框一律維持 .view-toggle 預設的 --btn-hover 藍色，只有文字換色——
    這是 Aimi 明確要求的行為，不要改成邊框也跟著變色。 */
-.tone-toggle .btn[data-tone="success"]  { --tone-color: var(--success-500); }
-.tone-toggle .btn[data-tone="warning"]  { --tone-color: var(--warning-500); }
+.tone-toggle .btn[data-tone="success"]  { --tone-color: var(--tag-green-text); }
+.tone-toggle .btn[data-tone="warning"]  { --tone-color: var(--tag-yellow-text); }
 .tone-toggle .btn[data-tone="gray"]     { --tone-color: var(--gray-500); }
-.tone-toggle .btn[data-tone="critical"] { --tone-color: var(--critical-500); }
-.tone-toggle .btn[data-tone="danger"]   { --tone-color: var(--danger-500); }
-.tone-toggle .btn[data-tone="info"]     { --tone-color: var(--info-500); }
+.tone-toggle .btn[data-tone="critical"] { --tone-color: var(--tag-purple-text); }
+.tone-toggle .btn[data-tone="danger"]   { --tone-color: var(--tag-red-text); }
+.tone-toggle .btn[data-tone="info"]     { --tone-color: var(--tag-blue-text); }
 .tone-toggle .btn[data-tone]:not([data-tone="neutral"]) { color: var(--tone-color); }
 .tone-toggle .btn.btn-primary[data-tone]:not([data-tone="neutral"]) { color: var(--tone-color); }
 
@@ -706,7 +706,7 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
 .table th :is(.fa-solid, svg):hover { color: var(--text-color); }
 .table th.sorted { background: var(--table-title-bg-active); }
 .table th.sorted .fa-sort { color: var(--text-color); }
-.table th.filtered .fa-filter { color: var(--btn-default); }
+.table th.filtered .fa-filter { color: var(--text-link); }
 
 /* 表頭 filter / 顯示欄位設定 的小下拉 */
 .col-menu {
@@ -831,8 +831,8 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
 .row-actions { display: flex; gap: var(--space-s); }
 .row-action { font: var(--weight-semibold) var(--text-caption); cursor: pointer; white-space: nowrap; }
 .row-action.detail { color: var(--text-link); }   /* 詳細資訊 / 查看 */
-.row-action.action { color: var(--info-500); }    /* 編輯 / 一般操作 */
-.row-action.danger { color: var(--danger-500); }  /* 刪除 / 移除 */
+.row-action.action { color: var(--tag-blue-text); }    /* 編輯 / 一般操作 */
+.row-action.danger { color: var(--tag-red-text); }  /* 刪除 / 移除 */
 /* hover：不加底線，直接換成該動作的 hover 色 */
 .row-action.detail:hover { color: var(--btn-hover); }
 .row-action.action:hover { color: var(--btn-info-hover); }
@@ -944,10 +944,10 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
   display: flex; flex-direction: column; justify-content: center; gap: var(--space-xxs);
 }
 .kpi .kpi-label { font: var(--weight-semibold) var(--text-caption); color: var(--text-color); }
-.kpi .kpi-num { font: var(--weight-semibold) var(--text-heading); color: var(--primary-700); }
-.kpi .kpi-num.is-danger { color: var(--danger-500); }
-.kpi .kpi-num.is-warning { color: var(--warning-500); }
-.kpi .kpi-num.is-success { color: var(--success-500); }
+.kpi .kpi-num { font: var(--weight-semibold) var(--text-heading); color: var(--text-link); }
+.kpi .kpi-num.is-danger { color: var(--tag-red-text); }
+.kpi .kpi-num.is-warning { color: var(--tag-yellow-text); }
+.kpi .kpi-num.is-success { color: var(--tag-green-text); }
 .kpi .kpi-unit { font: var(--weight-regular) var(--text-caption2); }   /* 單位、總數（/ 12） */
 .kpi .kpi-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-xs); }   /* 數字＋右側灰字短註 */
 .kpi .kpi-sub { font: var(--weight-regular) var(--text-caption2); color: var(--text-disable); }
@@ -1086,7 +1086,7 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
   padding: var(--space-m); font: var(--weight-semibold) var(--text-subheading);
   border-bottom: 1px solid var(--border-table);
 }
-.modal-header.is-danger { color: var(--danger-500); }
+.modal-header.is-danger { color: var(--tag-red-text); }
 .modal-body { padding: var(--space-m); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-m); }
 /* footer 只有一條分隔線，沒有底色 */
 .modal-footer {
@@ -1271,7 +1271,7 @@ textarea.input { height: auto; min-height: 72px; padding: var(--space-xs) var(--
   border-radius: var(--radius-btn);
 }
 .dp-day:hover { background: var(--bg-hover); }
-.dp-day.today { color: var(--btn-default); }
+.dp-day.today { color: var(--text-link); }
 .dp-day.in-range { background: var(--bg-actived); border-radius: 0; }
 .dp-day.sel,
 .dp-day.range-start,

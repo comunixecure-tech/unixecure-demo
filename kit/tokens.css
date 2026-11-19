@@ -249,14 +249,14 @@
   --success-100: #0d3818;  --success-300: #1b6e32;  --success-500: #4ade80;  --success-700: #86efac;  --success-900: #dcfce7;
   --info-100:    #0c2d48;  --info-300:    #1d5987;  --info-500:    #38bdf8;  --info-700:    #7dd3fc;  --info-900:    #e0f2fe;
   --warning-100: #3d2605;  --warning-300: #8a560b;  --warning-500: #fbbf24;  --warning-700: #fde68a;  --warning-900: #fef3c7;
-  --danger-100:  #42120c;  --danger-300:  #7f2318;  --danger-500:  #ef4444;  --danger-700:  #fca5a5;  --danger-900:  #fee2e2;
-  --critical-100:#2e103e;  --critical-300:#582075;  --critical-500:#a855f7;  --critical-700:#d8b4fe;  --critical-900:#f3e8ff;
+  --danger-100:  #42120c;  --danger-300:  #7f2318;  --danger-500:  #f87171;  --danger-700:  #fca5a5;  --danger-900:  #fee2e2;
+  --critical-100:#2e103e;  --critical-300:#582075;  --critical-500:#b87af9;  --critical-700:#d8b4fe;  --critical-900:#f3e8ff;
 
-  /* Tag（深色模式，全部對齊 Figma Tag/*/Dark） */
-  --tag-red-text:    #ef4444;  --tag-red-bg:    #42120c;
+  /* Tag（深色模式，全部對齊 Figma 各色 Tag 的 Dark 版） */
+  --tag-red-text:    #f87171;  --tag-red-bg:    #42120c;
   --tag-yellow-text: #fbbf24;  --tag-yellow-bg: #3d2605;
   --tag-green-text:  #4ade80;  --tag-green-bg:  #0d3818;
-  --tag-purple-text: #a855f7;  --tag-purple-bg: #2e103e;
+  --tag-purple-text: #b87af9;  --tag-purple-bg: #2e103e;
   --tag-blue-text:   #38bdf8;  --tag-blue-bg:   #0c2d48;
   --tag-gray-text:   #ffffff;  --tag-gray-bg:   #15161d;
 
@@ -273,7 +273,7 @@
 
   --text-color:   #ffffff;
   --text-disable: #a5a8bf;
-  --text-link:    #3b62d6;   /* = action/primary 深色（Primary/Dark/600）；跟 --btn-default 一致 */
+  --text-link:    #6e97f6;   /* Primary/Dark/400（2026-11-19）：文字用色獨立於按鈕底色 --btn-default，卡片底 5.42／頁面底 6.37 過 AA */
   --text-menu:    #ffb415;
 
   --border-default: #c3c5d4;
